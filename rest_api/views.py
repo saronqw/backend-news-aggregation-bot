@@ -7,16 +7,9 @@ from django.dispatch import receiver
 from rest_framework import viewsets, permissions
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
-from scrapy import signals
-
-from scrapy.crawler import CrawlerRunner, Crawler, CrawlerProcess
-from scrapy.utils.log import configure_logging
-from scrapy.utils.project import get_project_settings
-from twisted.internet import reactor
-
+import time
 from rest_api.grabber.grabber import RunGrabber
-from rest_api.grabber.grabber.management.comands.RunGrabbersCommand import RunGrabbersCommand
-from rest_api.grabber.grabber.spiders import TpuSpider
+
 from rest_api.models import NewsItem, University
 from rest_api.serializers import NewsItemSerializer, UniversitySerializer
 
@@ -41,9 +34,8 @@ class NewsItemLastWeekViewSet(viewsets.ViewSet):
 
         name = params.get("name", "all")
 
-        #self.update_news()
-
         self.update_news()
+        time.sleep(2)
 
         if name == "all" or name is None:
             queryset = NewsItem.objects.filter(pub_date__range=[count_days_ago, datetime.now()])

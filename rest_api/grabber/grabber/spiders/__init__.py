@@ -11,12 +11,13 @@ import scrapy
 
 # scrapy crawl caltech_news
 from rest_api.grabber.grabber.items import ScrapyNewsItem, ScrapyUniversityItem
-from rest_api.models import University
+from rest_api.models import University, NewsItem
 
 
 class CaltechSpider(scrapy.Spider):
     name = "caltech_news"
-
+    universityId = 6
+    lastTitle = (NewsItem.objects.filter(university_id=universityId).order_by('-pub_date')[0]).title
     start_urls = [
         'https://www.caltech.edu/about/news?&p=1',
     ]
@@ -92,7 +93,8 @@ class CaltechSpider(scrapy.Spider):
 
 class CambridgeSpider(scrapy.Spider):
     name = "cambridge_news"
-
+    universityId = 7
+    lastTitle = (NewsItem.objects.filter(university_id=universityId).order_by('-pub_date')[0]).title
     start_urls = [
         'https://www.cam.ac.uk/news?page=0',
     ]
@@ -134,7 +136,8 @@ class CambridgeSpider(scrapy.Spider):
 
 class HarvardSpider(scrapy.Spider):
     name = "harvard_news"
-
+    universityId = 4
+    lastTitle = (NewsItem.objects.filter(university_id=universityId).order_by('-pub_date')[0]).title
     start_urls = [
         'https://news.harvard.edu/gazette/section/news_plus',
     ]
@@ -191,7 +194,8 @@ class HarvardSpider(scrapy.Spider):
 
 class ItmoSpider(scrapy.Spider):
     name = "itmo_news"
-
+    universityId = 8
+    lastTitle = (NewsItem.objects.filter(university_id=universityId).order_by('-pub_date')[0]).title
     start_urls = [
         'https://news.itmo.ru/en/science/it/',
         'https://news.itmo.ru/en/science/photonics/',
@@ -266,7 +270,8 @@ class ItmoSpider(scrapy.Spider):
 
 class NsuSpider(scrapy.Spider):
     name = "nsu_news"
-
+    universityId = 3
+    lastTitle = (NewsItem.objects.filter(university_id=universityId).order_by('-pub_date')[0]).title
     start_urls = [
         'https://english.nsu.ru/news-events/news/',
     ]
@@ -315,7 +320,8 @@ class NsuSpider(scrapy.Spider):
 
 class NusSpider(scrapy.Spider):
     name = "nus_news"
-
+    universityId = 9
+    lastTitle = (NewsItem.objects.filter(university_id=universityId).order_by('-pub_date')[0]).title
     start_urls = [
         'https://news.nus.edu.sg/highlights?field_categories_target_id=All&page=0',
     ]
@@ -350,7 +356,8 @@ class NusSpider(scrapy.Spider):
 
 class SpbuSpider(scrapy.Spider):
     name = "spbu_news"
-
+    universityId = 10
+    lastTitle = (NewsItem.objects.filter(university_id=universityId).order_by('-pub_date')[0]).title
     start_urls = [
         'https://spbu.ru/news-events/novosti',
     ]
@@ -403,7 +410,8 @@ class SpbuSpider(scrapy.Spider):
 
 class StanfordSpider(scrapy.Spider):
     name = "stanford_news"
-
+    universityId = 5
+    lastTitle = (NewsItem.objects.filter(university_id=universityId).order_by('-pub_date')[0]).title
     start_urls = [
         'http://med.stanford.edu/news/all-news.html?main_news_builder_start=0',
     ]
@@ -438,11 +446,11 @@ class StanfordSpider(scrapy.Spider):
 class TpuSpider(scrapy.Spider):
     name = "tpu_news"
     universityId = 1
-    lastTitle = 'getLastNewsTitleByID(universityId)'
+    lastTitle = (NewsItem.objects.filter(university_id=universityId).order_by('-pub_date')[0]).title
     start_urls = [
         'https://news.tpu.ru/en/news/',
     ]
-    #tag = getattr(self, 'tag', None)
+
     def parse(self, response):
 
         for quote in response.css('div.row div.col-lg-9.item-body'):
@@ -452,25 +460,14 @@ class TpuSpider(scrapy.Spider):
             datatime = quote.css('div.date time::attr(datetime)').get()
             newsUrl = quote.css('a::attr(href)').get()
             if title == self.lastTitle:
-                exit(0)
+                return
             item = ScrapyNewsItem()
             item['title'] = title
             item['description'] = description
             item['link'] = newsUrl
             item['pub_date'] = datatime
-            # universityItem = ScrapyUniversityItem()
-            # universityItem['name'] = 'ТПУ'
-            # item['university'] = universityItem
-
             universityItem = University(id=1)
             item['university'] = universityItem
-            # yield {
-            #     'title': title,
-            #     'description': description,
-            #     'link': newsUrl,
-            #     'pub_date': datatime,
-            #     'university_id': self.universityId,
-            # }
             yield item
 
         next_page = response.css('li.next a::attr(href)').get()
@@ -483,7 +480,8 @@ class TpuSpider(scrapy.Spider):
 
 class TsuSpider(scrapy.Spider):
     name = "tsu_news"
-
+    universityId = 2
+    lastTitle = (NewsItem.objects.filter(university_id=universityId).order_by('-pub_date')[0]).title
     start_urls = [
         'http://en.tsu.ru/?page_38=1',
         #'http://en.tsu.ru/?page_38=669',
