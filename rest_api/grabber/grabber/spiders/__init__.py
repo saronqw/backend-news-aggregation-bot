@@ -17,6 +17,7 @@ from rest_api.models import University, NewsItem
 class CaltechSpider(scrapy.Spider):
     name = "caltech_news"
     universityId = 6
+
     lastTitle = (NewsItem.objects.filter(university_id=universityId).order_by('-pub_date')[0]).title
     start_urls = [
         'https://www.caltech.edu/about/news?&p=1',
