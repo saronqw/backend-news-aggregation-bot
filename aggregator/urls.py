@@ -15,6 +15,7 @@ router = routers.DefaultRouter()
 
 urlpatterns = [
     path('api/v1/rest_api/', include('rest_api.urls')),
+    path('analyzer/', include('analyzer.urls')),
     path('admin/', admin.site.urls),
     # REST FRAMEWORK
     # path('', include(router.urls)),

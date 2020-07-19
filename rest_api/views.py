@@ -1,3 +1,4 @@
+import json
 from datetime import *
 
 from django.conf import settings
@@ -23,7 +24,7 @@ class NewsItemLastWeekViewSet(viewsets.ViewSet):
     def list(self, request):
 
         params = request.query_params
-        interval = params.get("interval", "seven")
+        interval = params.get("interval", "seven_days")
 
         count_days_ago = (datetime.now() - timedelta(days=self.get_days(interval)))
 
@@ -53,22 +54,6 @@ class NewsItemViewSet(viewsets.ModelViewSet):
     queryset = NewsItem.objects.all()
     serializer_class = NewsItemSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-
-    # @action(detail=False, renderer_classes=[renderers.StaticHTMLRenderer])
-    # def news_from_last_week(self, request, *args, **kwargs):
-    #     last_week = (datetime.now() - timedelta(days=7))
-    #
-    #     # serializer = NewsItemSerializer(context={'request': request}, instance=NewsItem.objects.filter(datetime__range=[last_week, datetime.now()]), )
-    #     # serializer.is_valid()  # проверяем валидность
-    #     # content = JSONRenderer().render(serializer.data)
-    #     # return Response(
-    #     #     content
-    #     # )
-    #
-    #     resp =  NewsItem.objects.filter(datetime__range=[last_week, datetime.now()])
-    #     return Response(
-    #         resp
-    #     )
 
 
 class UniversityViewSet(viewsets.ModelViewSet):
