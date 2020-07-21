@@ -1,5 +1,6 @@
 import json
 from datetime import *
+from threading import Thread
 
 from django.conf import settings
 from django.db.models.signals import post_save
@@ -7,9 +8,12 @@ from django.dispatch import receiver
 from rest_framework import viewsets, permissions
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
+import time
+from rest_api.grabber.grabber import RunGrabber
 
 from rest_api.models import NewsItem, University
 from rest_api.serializers import NewsItemSerializer, UniversitySerializer
+
 
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
@@ -17,6 +21,7 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
         token = Token.objects.create(user=instance)
         print(token.key)
+
 
 
 class NewsItemLastWeekViewSet(viewsets.ViewSet):
@@ -29,6 +34,9 @@ class NewsItemLastWeekViewSet(viewsets.ViewSet):
         count_days_ago = (datetime.now() - timedelta(days=self.get_days(interval)))
 
         name = params.get("name", "all")
+
+        self.update_news()
+        time.sleep(2)
 
         if name == "all" or name is None:
             queryset = NewsItem.objects.filter(pub_date__range=[count_days_ago, datetime.now()])
@@ -46,8 +54,20 @@ class NewsItemLastWeekViewSet(viewsets.ViewSet):
         return {
             'one_day': 1,
             'three_days': 3,
-            'seven_days': 7,
+            'seven_days': 15,
         }[interval]
+
+    def update_news(self):
+        runner = RunGrabber()
+        runner.runGrabbers()
+        # runGrabbers()
+
+        # configure_logging({'LOG_FORMAT': '%(levelname)s: %(message)s'})
+        # runner = CrawlerRunner()
+        # d = runner.crawl(TpuSpider)
+        # d.addBoth(lambda _: reactor.stop())
+        # reactor.run()  # the script will block here until the crawling is finished
+
 
 
 class NewsItemViewSet(viewsets.ModelViewSet):
