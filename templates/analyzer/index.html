@@ -1,0 +1,26 @@
+{% load static %}
+<html lang="en">
+<head>
+    <title>Графики</title>
+    <link rel="stylesheet" href="{% static 'Chart.css' %}">
+</head>
+<body>
+<div style="max-width: 90%; margin: 4% auto">
+    <canvas id="myChart" width="8" height="3"></canvas>
+</div>
+
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.10.0.min.js"></script>
+<script type="text/javascript" src="{% static 'Chart.js' %}"></script>
+<script type="text/javascript" src="{% static 'chartjs-plugin-colorschemes.js' %}"></script>
+<script type="text/javascript">
+    $.get('{% url "line_chart_json" %}', function (data) {
+        var ctx = $("#myChart").get(0).getContext("2d");
+        new Chart(ctx, {
+            type: 'bar',
+            data: data.data,
+            options: data.options
+        });
+    });
+</script>
+</body>
+</html>
