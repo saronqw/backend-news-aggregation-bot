@@ -1,31 +1,24 @@
-# This package will contain the spiders of your Scrapy project
-#
-# Please refer to the documentation for information on how to create and manage
-# your spiders.
-
+import datetime
 import re
-import sys
-
 import scrapy
+
+from rest_api.grabber.grabber.items import ScrapyNewsItem
+from rest_api.models import NewsItem, University
 
 
 # scrapy crawl caltech_news
-from rest_api.grabber.grabber.items import ScrapyNewsItem, ScrapyUniversityItem
-from rest_api.models import University, NewsItem
-
-
 class CaltechSpider(scrapy.Spider):
     name = "caltech_news"
     universityId = 6
 
-    lastTitle = (NewsItem.objects.filter(university_id=universityId).order_by('-pub_date')[0]).title
+    lastTitle = "--"
+
     start_urls = [
         'https://www.caltech.edu/about/news?&p=1',
     ]
+
     url = 'https://www.caltech.edu/about/news?&p={}'
     page = 1
-
-    date = sys.argv[0]
 
     headers = {
         'Connection': 'keep-alive',
@@ -45,7 +38,7 @@ class CaltechSpider(scrapy.Spider):
 
         title = response.css(
             'div.simple-news-header-block.mb-5.py-5 h1.simple-news-header-block__title.mb-3::text').get()
-        if title is None:
+        if title is None or title == 'None' or title == '':
             title = response.css(
                 'h1.news-hero-header-block__info__title::text').get()
         description = response.css('div.rich-text p::text').get().strip()
@@ -59,78 +52,127 @@ class CaltechSpider(scrapy.Spider):
 
         regex = re.compile(r'[\n\r\t]|  +')
         description = (regex.sub("", description)).strip()
-        datatime = response.css('div.publish-date-block__date::text').get()
+
+        datatime_ruw = response.css('div.publish-date-block__date::text').get().strip()  # 'July 16, 2020'
+        datatime = str(datetime.datetime.strptime(datatime_ruw, '%B %d, %Y'))
+
         newsUrl = response.request.url
 
+        full_text_array = response.css('div.rich-text *::text').getall()
+        full_text = ' '.join(str(d).strip() for d in full_text_array)
+        full_text = (regex.sub("", full_text))
+
+        if len(description) < 100:
+            description = description + ' ' + full_text[0:][:100]
+
         if description != "":
-            yield {
-                'title': (title).strip(),
-                'description': (description),
-                'link': newsUrl,
-                'pub_date': (datatime).strip(),
-                'university_id': '56',
-            }
+            item = ScrapyNewsItem()
+            item['title'] = title.strip()
+            item['description'] = description
+            item['full_text'] = full_text
+            item['link'] = newsUrl
+            item['pub_date'] = datatime
+            universityItem = University(id=self.universityId)
+            item['university'] = universityItem
+            yield item
 
     def parse(self, response):
-        for quote in response.css('div.article-teaser'):
+        news_item = NewsItem.objects.filter(university_id=self.universityId).order_by('-pub_date')
+        if news_item:
+            self.lastTitle = (news_item[0]).title
+
+        for quote in response.css('div.article-teaser__info'):
+            title = quote.css('div.article-teaser__title a::text').get().strip()
+            if title == self.lastTitle:
+                exit(0)
             newsURL = quote.css('div.article-teaser__title a.article-teaser__link::attr(href)').get()
-            news_date = quote.css('span.article-teaser__published-date__date::text').get()
-            # date = DT.datetime.strptime(text, '%Y%m%d').date()
-            yield scrapy.Request('https://www.caltech.edu{}'.format(newsURL), headers=self.headers,
-                                 callback=self.parseNewsPage)
+            if newsURL[0] == '/':
+                yield scrapy.Request('https://www.caltech.edu{}'.format(newsURL), headers=self.headers,
+                                     callback=self.parseNewsPage)
 
         last_page = 'https://www.caltech.edu{}'.format(response.css(
             'a.news-article-list__paginator__link-box.news-article-list__paginator__last-page::attr(href)').get())
         self.page += 1
         next_page = self.url.format(self.page)
 
-        # if next_page != last_page:
-        # yield response.follow(next_page, callback=self.parse)
+        if next_page != last_page:
+            yield response.follow(next_page, callback=self.parse)
 
-
-
-
-# scrapy crawl cambridge_news
 
 class CambridgeSpider(scrapy.Spider):
     name = "cambridge_news"
     universityId = 7
-    lastTitle = (NewsItem.objects.filter(university_id=universityId).order_by('-pub_date')[0]).title
+
+    lastTitle = "--"
+
     start_urls = [
         'https://www.cam.ac.uk/news?page=0',
     ]
 
+    headers = {
+        'Connection': 'keep-alive',
+        'Cache-Control': 'max-age=0',
+        'DNT': '1',
+        'Upgrade-Insecure-Requests': '1',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101 Firefox/78.0',
+        'Sec-Fetch-User': '?1',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Sec-Fetch-Site': 'same-origin',
+        'Sec-Fetch-Mode': 'navigate',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3',
+    }
+
+    def parseNewsPage(self, response):
+        title = str(response.css('h1.cam-sub-title::text').get()).strip()
+
+        description_array = response.css(
+            'div.field-name-field-content-summary div.field-items div.field-item.even *::text').getall()
+        description = ' '.join(str(d).strip() for d in description_array)
+
+        full_text_array = response.css('div.field-name-body div.field-items div.field-item.even *::text').getall()
+        full_text = ' '.join(str(d).strip() for d in full_text_array)
+        if full_text == '':
+            full_text_array = response.css('div.field-name-body div.field-items div.field-item.even p *::text').getall()
+            full_text = ' '.join(str(d).strip() for d in full_text_array)
+        regex = re.compile(r'[\n\r\t]|  +')
+        full_text = (regex.sub("", full_text))
+
+        newsUrl = response.request.url
+
+        datatime_ruw = str(response.css(
+            'div.view-content div.views-row div.view-image-credit span::text').get()).strip()  # '05 June 2020'
+        datatime = str(datetime.datetime.strptime(datatime_ruw, '%d %b %Y'))
+
+        if len(description) < 100:
+            description = description + ' ' + full_text[0:][:100]
+
+        item = ScrapyNewsItem()
+        item['title'] = title.strip()
+        item['description'] = description
+        item['full_text'] = full_text
+        item['link'] = newsUrl
+        item['pub_date'] = datatime
+        universityItem = University(id=self.universityId)
+        item['university'] = universityItem
+        yield item
+
     def parse(self, response):
+        news_item = NewsItem.objects.filter(university_id=self.universityId).order_by('-pub_date')
+        if news_item:
+            self.lastTitle = (news_item[0]).title
         for quote in response.css('article.clearfix.cam-horizontal-teaser.cam-teaser'):
             title = str(quote.css('h3.cam-teaser-title a::text').get()).strip()
-            description = str(quote.css('div.field-item.even::text').get()).strip()
-            if description is None or description == 'None' or description == '':
-                description = str(quote.css('div.field-item.even p::text').get()).strip()
-                if description is None or description == 'None' or description == '':
-                    description = str(quote.css('div.field-item.even p span::text').get()).strip()
-                    if description is None or description == 'None' or description == '':
-                        description = str(quote.css('div.field-item.even div::text').get()).strip()
-                        if description is None or description == 'None' or description == '':
-                            description = str(quote.css('div.field-item.even p strong b::text').get()).strip()
-                            if description is None or description == 'None' or description == '':
-                                description = str(quote.css('div.field-item.even strong::text').get()).strip()
-                                if description is None or description == 'None' or description == '':
-                                    description = str(quote.css('div.field-item.even em::text').get()).strip()
-            regex = re.compile(r'[\n\r\t]|  +')
-            description = (regex.sub("", description))
-            datatime = quote.css('span.cam-datestamp::text').get()
-            newsUrl = quote.css('h3.cam-teaser-title a::attr(href)').get()
-            yield {
-                'title': title,
-                'description': description,
-                'link': 'https://www.cam.ac.uk{}'.format(newsUrl),
-                'pub_date': datatime,
-                'university_id': '199',
-            }
+            if title == self.lastTitle:
+                exit(0)
+            newsUrl = quote.css('h3.cam-teaser-title a::attr(href)').get().strip()
+            if newsUrl[1] != 's':
+                yield scrapy.Request('https://www.cam.ac.uk{}'.format(newsUrl), headers=self.headers,
+                                     callback=self.parseNewsPage)
 
         next_page = response.css('li.pager-next.last a::attr(href)').get()
-        #if next_page is not None:
-            #yield response.follow('https://www.cam.ac.uk{}'.format(next_page), callback=self.parse)
+        if next_page is not None:
+            yield response.follow('https://www.cam.ac.uk{}'.format(next_page), callback=self.parse)
 
 
 # scrapy crawl harvard_news
@@ -138,7 +180,9 @@ class CambridgeSpider(scrapy.Spider):
 class HarvardSpider(scrapy.Spider):
     name = "harvard_news"
     universityId = 4
-    lastTitle = (NewsItem.objects.filter(university_id=universityId).order_by('-pub_date')[0]).title
+
+    lastTitle = "--"
+
     start_urls = [
         'https://news.harvard.edu/gazette/section/news_plus',
     ]
@@ -167,36 +211,56 @@ class HarvardSpider(scrapy.Spider):
         if description is None or description == 'None' or description == '':
             description_array = response.css('div.article-body.basic-text p span::text').getall()
             description = (' '.join(str(d) for d in description_array))
-            regex = re.compile(r'[\n\r\t]|  +')
+
             description = (regex.sub("", description)).strip()
 
-        datatime = response.css('p.article-posted-on time.timestamp::attr(datetime)').get()
+        full_text_array = response.css('div.article-body.basic-text *::text').getall()
+        full_text = (' '.join(str(d).strip() for d in full_text_array))
+
+        full_text = (regex.sub("", full_text))
+
+        datatime_ruw = response.css(
+            'p.article-posted-on time.timestamp::attr(datetime)').get().strip()  # 2020-06-04T08:39:24-04:00
+        datatime = str(datetime.datetime.strptime(datatime_ruw, '%Y-%m-%dT%H:%M:%S%z'))[0:][:19]
+
         newsUrl = response.request.url
-        yield {
-            'title': title,
-            'description': description,
-            'link': newsUrl,
-            'pub_date': datatime,
-            'university_id': '4',
-        }
+
+        if len(description) < 100:
+            description = description + ' ' + full_text[0:][:100]
+
+        item = ScrapyNewsItem()
+        item['title'] = title.strip()
+        item['description'] = description
+        item['full_text'] = full_text
+        item['link'] = newsUrl
+        item['pub_date'] = datatime
+        universityItem = University(id=self.universityId)
+        item['university'] = universityItem
+        yield item
 
     def parse(self, response):
+        news_item = NewsItem.objects.filter(university_id=self.universityId).order_by('-pub_date')
+        if news_item:
+            self.lastTitle = (news_item[0]).title
+
         for quote in response.css('div.tz-article-image__meta'):
+            title = quote.css('h2.tz-article-image__title a::text').get().strip()
+            if title == self.lastTitle:
+                exit(0)
             newsURL = quote.css('h2.tz-article-image__title a::attr(href)').get()
 
             yield scrapy.Request(newsURL, headers=self.headers,
                                  callback=self.parseNewsPage)
 
         next_page = response.css('div.nav-previous a::attr(href)').get()
-        # if next_page is not None:
-        # yield response.follow(next_page, callback=self.parse)
-
+        if next_page is not None:
+            yield response.follow(next_page, callback=self.parse)
 
 
 class ItmoSpider(scrapy.Spider):
     name = "itmo_news"
     universityId = 8
-    lastTitle = (NewsItem.objects.filter(university_id=universityId).order_by('-pub_date')[0]).title
+    # lastTitle = "--"
     start_urls = [
         'https://news.itmo.ru/en/science/it/',
         'https://news.itmo.ru/en/science/photonics/',
@@ -216,11 +280,11 @@ class ItmoSpider(scrapy.Spider):
         'https://news.itmo.ru/en/startups_and_business/partnership/',
         'https://news.itmo.ru/en/startups_and_business/initiative/',
 
-        'https://news.itmo.ru/ru/university_live/ratings/',
-        'https://news.itmo.ru/ru/university_live/achievements/',
-        'https://news.itmo.ru/ru/university_live/leisure/',
-        'https://news.itmo.ru/ru/university_live/ads/',
-        'https://news.itmo.ru/ru/university_live/social_activity/',
+        'https://news.itmo.ru/en/university_live/ratings/',
+        'https://news.itmo.ru/en/university_live/achievements/',
+        'https://news.itmo.ru/en/university_live/leisure/',
+        'https://news.itmo.ru/en/university_live/ads/',
+        'https://news.itmo.ru/en/university_live/social_activity/',
 
     ]
 
@@ -238,33 +302,58 @@ class ItmoSpider(scrapy.Spider):
         'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3',
     }
 
-
-    def parseNewsPage(self, response):
-        title = response.css('div.article article h1::text').get()
+    def parseNewsPage(self, response, item):
+        # title = response.css('div.article article h1::text').get()
         description_array = response.css('div.article article strong::text').getall()
         description = ' '.join(str(d) for d in description_array)
         regex = re.compile(r'[\n\r\t]|  +')
         description = (regex.sub("", description))
-        datatime = response.css('div.news-info-wrapper time::attr(datetime)').get()
+
+        full_text_array = response.css('div.post-content *::text').getall()
+        full_text = (' '.join(str(d).strip() for d in full_text_array))
+        full_text = (regex.sub("", full_text))
+
+        # datatime = response.css('div.news-info-wrapper time::attr(datetime)').get()
+        datatime_ruw = response.css(
+            'div.news-info-wrapper time::attr(datetime)').get().strip()  # 2020-06-04T08:39:24-04:00
+        datatime = str(datetime.datetime.strptime(datatime_ruw, '%Y-%m-%dT%H:%M:%S%z'))[0:][:19]
+
         newsUrl = response.request.url
 
-        yield {
-            'title': title,
-            'description': description,
-            'link': newsUrl,
-            'pub_date': datatime,
-            'university_id': '7',
-        }
+        if len(description) < 100:
+            description = description + ' ' + full_text[0:][:100]
+
+        item['title'] = item['title']
+        item['description'] = description
+        item['full_text'] = full_text
+        item['link'] = newsUrl
+        item['pub_date'] = datatime
+        universityItem = University(id=self.universityId)
+        item['university'] = universityItem
+        yield item
 
     def parse(self, response):
+        news_item = NewsItem.objects.filter(university_id=self.universityId).order_by('-pub_date')
+        lastTitles = [None] * 151
+        if news_item:
+            news = news_item[0:][:150]
+            for i in range(0, 150):
+                lastTitles[i] = news[i].title
+
         for quote in response.css('ul.triplet li'):
+            title = quote.css('h4 a::text').get().strip()
+            if title in lastTitles:
+                exit(0)
             newsURL = quote.css('h4 a::attr(href)').get()
+
+            item = ScrapyNewsItem()
+            item['title'] = title.strip()
             yield scrapy.Request('https://news.itmo.ru{}'.format(newsURL), headers=self.headers,
-                                 callback=self.parseNewsPage)
+                                 callback=self.parseNewsPage, cb_kwargs=dict(item=item))
 
         next_page = response.css('ul.pagination-custom.row.flex-center div.col-1 a::attr(href)').getall()[1]
-        #if next_page is not None:
-            #yield response.follow(next_page, callback=self.parse)
+        if next_page is not None:
+            yield response.follow(next_page, callback=self.parse)
 
 
 # scrapy crawl nsu_news
@@ -272,14 +361,16 @@ class ItmoSpider(scrapy.Spider):
 class NsuSpider(scrapy.Spider):
     name = "nsu_news"
     universityId = 3
-    lastTitle = (NewsItem.objects.filter(university_id=universityId).order_by('-pub_date')[0]).title
+
+    lastTitle = "--"
+
     start_urls = [
         'https://english.nsu.ru/news-events/news/',
     ]
 
     url = 'https://english.nsu.ru/news-events/news/?PAGEN_1={}'
     page_num = 1
-    '''
+
     headers = {
         'Connection': 'keep-alive',
         'Cache-Control': 'max-age=0',
@@ -293,64 +384,126 @@ class NsuSpider(scrapy.Spider):
         'Accept-Encoding': 'gzip, deflate, br',
         'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3',
     }
-    '''
+
+    def parseNewsPage(self, response):
+        title = str(response.css('div.col-lg-9 h1::text').get()).strip()
+
+        description = str(response.css('div.detail_text p::text').get()).strip()
+
+        full_text_array = response.css('div.detail_text *::text').getall()
+        full_text = (' '.join(str(d).strip() for d in full_text_array))
+        regex = re.compile(r'[\n\r\t]|  +')
+        full_text = (regex.sub("", full_text))
+        if description == '':
+            description = full_text[0:][:100]
+        datatime_ruw = response.css('div.news-date-time.nowrap::text').get().strip()  # '21.03.2020'
+        datatime = str(datetime.datetime.strptime(datatime_ruw, '%d.%m.%Y'))
+
+        newsUrl = response.request.url
+
+        if len(description) < 100:
+            description = description + ' ' + full_text[0:][:100]
+
+        item = ScrapyNewsItem()
+        item['title'] = title.strip()
+        item['description'] = description
+        item['full_text'] = full_text
+        item['link'] = newsUrl
+        item['pub_date'] = datatime
+        universityItem = University(id=self.universityId)
+        item['university'] = universityItem
+        yield item
 
     def parse(self, response):
+        news_item = NewsItem.objects.filter(university_id=self.universityId).order_by('-pub_date')
+        if news_item:
+            self.lastTitle = (news_item[0]).title
+
         for quote in response.css('div.news-card'):
             title = str(quote.css('a.name::text').get()).strip()
-            description = str(quote.css('p::text').get()).strip()
-            datatime = quote.css('div.date::text').get()
+            if title == self.lastTitle:
+                exit(0)
             newsUrl = 'https://english.nsu.ru{}'.format(quote.css('a.name::attr(href)').get())
-            yield {
-                'title': title,
-                'description': description,
-                'link': newsUrl,
-                'pub_date': datatime,
-                'university_id': '3',
-            }
-
+            yield scrapy.Request(newsUrl, headers=self.headers,
+                                 callback=self.parseNewsPage)
         next_page = response.css('a.moreNewsList.loadMoreButton').get()
         self.page_num += 1
-        #if next_page is not None:
-            #yield response.follow(self.url.format(self.page_num), callback=self.parse)
+        if next_page is not None:
+            yield response.follow(self.url.format(self.page_num), callback=self.parse)
 
 
 # scrapy crawl nus_news
-
-
-
 class NusSpider(scrapy.Spider):
     name = "nus_news"
     universityId = 9
-    lastTitle = (NewsItem.objects.filter(university_id=universityId).order_by('-pub_date')[0]).title
+
+    lastTitle = "--"
+
     start_urls = [
         'https://news.nus.edu.sg/highlights?field_categories_target_id=All&page=0',
     ]
 
+    headers = {
+        'Connection': 'keep-alive',
+        'Cache-Control': 'max-age=0',
+        'DNT': '1',
+        'Upgrade-Insecure-Requests': '1',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101 Firefox/78.0',
+        'Sec-Fetch-User': '?1',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Sec-Fetch-Site': 'same-origin',
+        'Sec-Fetch-Mode': 'navigate',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3',
+    }
+
+    def parseNewsPage(self, response):
+        title = str(response.css('h1.page-header span::text').get()).strip()
+
+        regex = re.compile(r'[\n\r\t]|  +')
+        description = (
+            regex.sub("", str(response.css('div.field.field--name-field-caption-format.field--type-text-long.'
+                                           'field--label-hidden.landingimg-caption.field--item  p::text').get())))
+
+        full_text_array = response.css('div.content *::text').getall()
+        full_text = (' '.join(str(d).strip() for d in full_text_array))
+        full_text = (regex.sub("", full_text))
+
+        array = response.css('article.highlights.full.clearfix *::text').getall()
+        datatime_ruw = str(array[1]).strip()[0:][:-3]  # '03 July 2020'
+        datatime = str(datetime.datetime.strptime(datatime_ruw, '%d %B %Y'))
+
+        newsUrl = response.request.url
+
+        if len(description) < 100:
+            description = description + ' ' + full_text[0:][:100]
+
+        item = ScrapyNewsItem()
+        item['title'] = title.strip()
+        item['description'] = description
+        item['full_text'] = full_text
+        item['link'] = newsUrl
+        item['pub_date'] = datatime
+        universityItem = University(id=self.universityId)
+        item['university'] = universityItem
+        yield item
+
     def parse(self, response):
+        news_item = NewsItem.objects.filter(university_id=self.universityId).order_by('-pub_date')
+        if news_item:
+            self.lastTitle = (news_item[0]).title
+
         for quote in response.css('div.col-lg-6.col-md-6.col-sm-6.col-xs-12.highlight-top'):
             title = str(quote.css('h2.highlight-title a::text').get()).strip()
-            regex = re.compile(r'[\n\r\t]|  +')
-            description = (regex.sub("", str(quote.css('div.field-content.introtxt p::text').get()))).strip()
-            if description is None or description == 'None' or description == '':
-                description_array = response.css('div.field-content.introtxt p span span::text').getall()
-                description = ' '.join(str(d) for d in description_array)
-                regex = re.compile(r'[\n\r\t]|  +')
-                description = (regex.sub("", description))
-
-            datatime = quote.css('span.views-field.views-field-created span.field-content::text').get()
+            if title == self.lastTitle:
+                exit(0)
             newsUrl = quote.css('h2.highlight-title a::attr(href)').get()
-            yield {
-                'title': title,
-                'description': description,
-                'link': newsUrl,
-                'pub_date': datatime,
-                'university_id': '153',
-            }
+            yield scrapy.Request('https://news.nus.edu.sg{}'.format(newsUrl), headers=self.headers,
+                                 callback=self.parseNewsPage)
 
         next_page = response.css('li.pager__item--next a::attr(href)').get()
-        #if next_page is not None:
-            #yield response.follow('https://news.nus.edu.sg/highlights{}'.format(next_page), callback=self.parse)
+        if next_page is not None:
+            yield response.follow('https://news.nus.edu.sg/highlights{}'.format(next_page), callback=self.parse)
 
 
 # scrapy crawl spbu_news
@@ -358,7 +511,9 @@ class NusSpider(scrapy.Spider):
 class SpbuSpider(scrapy.Spider):
     name = "spbu_news"
     universityId = 10
-    lastTitle = (NewsItem.objects.filter(university_id=universityId).order_by('-pub_date')[0]).title
+
+    lastTitle = "--"
+
     start_urls = [
         'https://spbu.ru/news-events/novosti',
     ]
@@ -379,113 +534,209 @@ class SpbuSpider(scrapy.Spider):
 
     def parseNewsPage(self, response):
 
-        title = response.css('h1.post__title::text').get()
+        title = response.css('h1.post__title::text').get().strip()
         description = str(response.css('p.post__desc ::text').get()).strip()
         if description is None or description == 'None' or description == '':
             description = str(response.css('div.editor.editor--medium p::text').get()).strip()
-        datatime = response.css('span.date-display-single::attr(content)').get()
+
+        full_text_array = response.css('div.editor.editor--medium *::text').getall()
+        full_text = (' '.join(str(d).strip() for d in full_text_array))
+        regex = re.compile(r'[\n\r\t]|  +')
+        full_text = (regex.sub("", full_text))
+
+        datatime_ruw = response.css(
+            'span.date-display-single::attr(content)').get().strip()  # '2020-07-15T16:30:00+03:00'
+        datatime = str(datetime.datetime.strptime(datatime_ruw, '%Y-%m-%dT%H:%M:%S%z'))[0:][:19]
+
         newsUrl = response.request.url
-        if title != "   \n                            Материалы ректорского совещания                      " and description != 'None':
-            yield {
-                'title': title,
-                'description': description,
-                'link': newsUrl,
-                'pub_date': datatime,
-                'university_id': '4',
-        }
+
+        if len(description) < 100:
+            description = description + ' ' + full_text[0:][:100]
+
+        if title != "Материалы ректорского совещания" and description != 'None':
+            item = ScrapyNewsItem()
+            item['title'] = title.strip()
+            item['description'] = description
+            item['full_text'] = full_text
+            item['link'] = newsUrl
+            item['pub_date'] = datatime
+            universityItem = University(id=self.universityId)
+            item['university'] = universityItem
+            yield item
 
     def parse(self, response):
+        news_item = NewsItem.objects.filter(university_id=self.universityId).order_by('-pub_date')
+        if news_item:
+            self.lastTitle = (news_item[0]).title
         for quote in response.css('div.card-context'):
+            title = quote.css('h4.card__title::text').get().strip()
+            if title == self.lastTitle:
+                exit(0)
             newsURL = quote.css('a.card__media::attr(href)').get()
-
-
             yield scrapy.Request('https://spbu.ru{}'.format(newsURL), headers=self.headers,
                                  callback=self.parseNewsPage)
 
         next_page = response.css('li.pagination__item.pagination__next.last a::attr(href)').get()
-        #if next_page is not None:
-            #yield response.follow(next_page, callback=self.parse)
+        if next_page is not None:
+            yield response.follow(next_page, callback=self.parse)
 
 
 # scrapy crawl stanford_news
-
 class StanfordSpider(scrapy.Spider):
     name = "stanford_news"
     universityId = 5
-    lastTitle = (NewsItem.objects.filter(university_id=universityId).order_by('-pub_date')[0]).title
+
+    lastTitles = ['', '', '', '', '', '']
+
     start_urls = [
         'http://med.stanford.edu/news/all-news.html?main_news_builder_start=0',
     ]
 
+    headers = {
+        'Connection': 'keep-alive',
+        'Cache-Control': 'max-age=0',
+        'DNT': '1',
+        'Upgrade-Insecure-Requests': '1',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101 Firefox/78.0',
+        'Sec-Fetch-User': '?1',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Sec-Fetch-Site': 'same-origin',
+        'Sec-Fetch-Mode': 'navigate',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3',
+    }
+
+    def parseNewsPage(self, response, item):
+        # title = str(response.css('div.news-title hgroup.section-header h1::text').get()).strip()
+
+        description = str(response.css('p.news-excerpt::text').get()).strip()
+
+        full_text_array = response.css('div.main.parsys div div *::text').getall()
+        full_text = (' '.join(str(d).strip() for d in full_text_array))
+        regex = re.compile(r'[\n\r\t]|  +')
+        full_text = (regex.sub("", full_text))
+
+        date_day = str(response.css('span.publication-day::text').get()).strip()
+        date_year = str(response.css('span.publication-year::text').get()).strip()
+        datatime_ruw = date_day + ' ' + date_year  # Jul 14 2020
+        datatime = str(datetime.datetime.strptime(datatime_ruw, '%b %d %Y'))
+
+        newsUrl = response.request.url
+
+        if len(description) < 100:
+            description = description + ' ' + full_text[0:][:100]
+
+        # item = ScrapyNewsItem()
+        item['title'] = item['title']
+        item['description'] = description
+        item['full_text'] = full_text
+        item['link'] = newsUrl
+        item['pub_date'] = datatime
+        universityItem = University(id=self.universityId)
+        item['university'] = universityItem
+        yield item
+
     def parse(self, response):
+        news_item = NewsItem.objects.filter(university_id=self.universityId).order_by('-pub_date')
+        if news_item:
+            news = (news_item[0:][:6])
+            for i in range(0, 6):
+                self.lastTitles[i] = news[i].title
         for quote in response.css('li.newsfeed-item.row'):
             title = str(quote.css('h3.newsfeed-item-title::text').get()).strip()
-            description = str(quote.css('p.newsfeed-item-excerpt::text').get()).strip()
-            datatime = quote.css('div.pull-left time::attr(datetime)').get()
-            newsUrl = 'http://med.stanford.edu{}'.format(quote.css('div.col-xs-9.col-sm-8 a::attr(href)').get())
-            if description != 'None' and datatime is not None:
-                yield {
-                    'title': title,
-                    'description': description,
-                    'link': newsUrl,
-                    'pub_date': datatime,
-                    'university_id': '5',
-                }
-
+            if title in self.lastTitles:
+                exit(0)
+            newsUrl = quote.css('div.col-xs-9.col-sm-8 a::attr(href)').get()
+            if newsUrl == 'None' or newsUrl == None:
+                newsUrl = quote.css('div.col-sm-12 a::attr(href)').get()
+            newsUrl = 'http://med.stanford.edu{}'.format(newsUrl)
+            item = ScrapyNewsItem()
+            item['title'] = title.strip()
+            yield scrapy.Request(newsUrl, headers=self.headers,
+                                 callback=self.parseNewsPage,
+                                 cb_kwargs=dict(item=item))
         next_page = response.css('div.next a::attr(href)').get()
-        #if next_page is not None:
-            #yield response.follow('http://med.stanford.edu{}'.format(next_page), callback=self.parse)
+        if next_page is not None:
+            yield response.follow('http://med.stanford.edu{}'.format(next_page), callback=self.parse)
 
 
 # scrapy crawl tpu_news
-# ломаные
-# TPU delegation at WSEC-2017
-# TPU – only Russian university presented in national exposition at Astana Expo 2017
-#from rest_api.grabber.grabber.grabber_runer import getLastNewsTitleByID
-
-
 class TpuSpider(scrapy.Spider):
     name = "tpu_news"
     universityId = 1
-    lastTitle = (NewsItem.objects.filter(university_id=universityId).order_by('-pub_date')[0]).title
+
+    lastTitle = "--"
+
     start_urls = [
         'https://news.tpu.ru/en/news/',
     ]
 
+    headers = {
+        'Connection': 'keep-alive',
+        'Cache-Control': 'max-age=0',
+        'DNT': '1',
+        'Upgrade-Insecure-Requests': '1',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101 Firefox/78.0',
+        'Sec-Fetch-User': '?1',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Sec-Fetch-Site': 'same-origin',
+        'Sec-Fetch-Mode': 'navigate',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3',
+    }
+
+    def parseNewsPage(self, response):
+        title = str(response.css('h1.title::attr(title)').get()).strip()
+        regex = re.compile(r'[\n\r\t]|  +')
+        description = (regex.sub("", str(response.css('div.description p span strong::text').get()))).strip()
+        full_text_array = response.css('div.description *::text').getall()
+        full_text = (' '.join(str(d).strip() for d in full_text_array))
+        full_text = (regex.sub("", full_text))
+        if description is None or description == 'None' or description == '':
+            description = full_text[0:][:100]
+        datatime = response.css('div.date time::attr(datetime)').get()  # '2020-05-29 12:31:00'
+        newsUrl = response.request.url
+
+        if len(description) < 100:
+            description = description + ' ' + full_text[0:][:100]
+
+        item = ScrapyNewsItem()
+        item['title'] = title.strip()
+        item['description'] = description
+        item['full_text'] = full_text
+        item['link'] = newsUrl
+        item['pub_date'] = datatime
+        universityItem = University(id=self.universityId)
+        item['university'] = universityItem
+        yield item
+
     def parse(self, response):
+        news_item = NewsItem.objects.filter(university_id=self.universityId).order_by('-pub_date')
+        if news_item:
+            self.lastTitle = (news_item[0]).title
 
         for quote in response.css('div.row div.col-lg-9.item-body'):
             title = str(quote.css('h3.title::attr(title)').get()).strip()
-            regex = re.compile(r'[\n\r\t]|  +')
-            description = (regex.sub("", str(quote.css('div.description::text').get()))).strip()
-            datatime = quote.css('div.date time::attr(datetime)').get()
-            newsUrl = quote.css('a::attr(href)').get()
             if title == self.lastTitle:
-                return
-            item = ScrapyNewsItem()
-            item['title'] = title
-            item['description'] = description
-            item['link'] = newsUrl
-            item['pub_date'] = datatime
-            universityItem = University(id=1)
-            item['university'] = universityItem
-            yield item
-
+                exit(0)
+            newsUrl = quote.css('a::attr(href)').get()
+            yield scrapy.Request(newsUrl, headers=self.headers,
+                                 callback=self.parseNewsPage)
         next_page = response.css('li.next a::attr(href)').get()
-        #if next_page is not None:
-           # yield response.follow(next_page, callback=self.parse)
-
+        if next_page is not None:
+            yield response.follow(next_page, callback=self.parse)
 
 
 # scrapy crawl tsu_news
-
 class TsuSpider(scrapy.Spider):
     name = "tsu_news"
     universityId = 2
-    lastTitle = (NewsItem.objects.filter(university_id=universityId).order_by('-pub_date')[0]).title
+
+    lastTitle = "--"
+
     start_urls = [
-        'http://en.tsu.ru/?page_38=1',
-        #'http://en.tsu.ru/?page_38=669',
+        #'http://en.tsu.ru/?page_38=1',
+        'http://en.tsu.ru/?page_38=669',
     ]
 
     headers = {
@@ -508,21 +759,45 @@ class TsuSpider(scrapy.Spider):
         description = str(response.css('div.preview_text ::text').get()).strip()
         if description == '':
             description = str(response.css('div.preview_text p::text').get()).strip()
-        datatime = response.css('div.news-detail-date::text').get()
+
+        full_text_array = response.css('div.preview_text *::text').getall()
+        full_text = (' '.join(str(d).strip() for d in full_text_array))
+        regex = re.compile(r'[\n\r\t]|  +')
+        full_text = (regex.sub("", full_text))
+        if description is None or description == 'None' or description == '':
+            description = full_text[0:][:100]
+
+        datatime_ruw = response.css('div.news-detail-date::text').get().strip()  # '08.07.2020'
+        datatime = str(datetime.datetime.strptime(datatime_ruw, '%d.%m.%Y'))
+
         newsUrl = response.request.url
 
-        yield {
-            'title': title,
-            'description': description,
-            'link': newsUrl,
-            'pub_date': datatime,
-            'university_id': '2',
-        }
+        if len(description) < 100:
+            description = description + ' ' + full_text[0:][:100]
+
+        item = ScrapyNewsItem()
+        item['title'] = title.strip()
+        item['description'] = description
+        item['full_text'] = full_text
+        item['link'] = newsUrl
+        item['pub_date'] = datatime
+        universityItem = University(id=self.universityId)
+        item['university'] = universityItem
+        yield item
 
     def parse(self, response):
+        news_item = NewsItem.objects.filter(university_id=self.universityId).order_by('-pub_date')
+        if news_item:
+            self.lastTitle = (news_item[0]).title
+
         for quote in response.css('div.news_item.col-xs-12.col-sm-6.col-lg-3 div.news_name'):
+            title = quote.css('div.news_name a::text').get()
+            if title is None or title == 'None' or title == '':
+                title = quote.css('div.news_name a p::text').get()
+            title = title.strip()
+            if title == self.lastTitle:
+                exit(0)
             newsURL = quote.css('a::attr(href)').get()
 
-            # response.follow(newsURL, callback=self.parseNewsPage)
             yield scrapy.Request('http://en.tsu.ru{}'.format(newsURL), headers=self.headers,
                                  callback=self.parseNewsPage)

@@ -10,7 +10,7 @@ class NewsItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = NewsItem
         # fields = ['url', 'id', 'title', 'description', 'link', 'university', 'datetime']
-        fields = ['id', 'title', 'description', 'link', 'university', 'pub_date']
+        fields = ['id', 'title', 'description', 'full_text', 'link', 'university', 'pub_date']
 
 
 class UniversitySerializer(serializers.ModelSerializer):

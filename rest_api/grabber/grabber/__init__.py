@@ -1,31 +1,19 @@
 import os
 from threading import Thread
 
-from django.template.backends import django
-from scrapy.crawler import CrawlerRunner, CrawlerProcess
+from scrapy.crawler import CrawlerRunner
 from scrapy.settings import Settings
 from scrapy.utils.log import configure_logging
-
-from multiprocessing.context import Process
-
 from twisted.internet import reactor
-from twisted.internet.error import ReactorAlreadyRunning
-from twisted.internet.selectreactor import SelectReactor
 
-from rest_api.grabber.grabber.spiders import CaltechSpider, TpuSpider
+from rest_api.grabber.grabber.spiders import CaltechSpider, TpuSpider, CambridgeSpider, HarvardSpider, TsuSpider, \
+    ItmoSpider, NsuSpider, NusSpider, SpbuSpider, StanfordSpider
+
 
 # import os
 # os.environ.setdefault("DJANGO_SETTINGS_MODULE", "aggregator.settings")
 # os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 
-import sys
-import os
-from scrapy.utils.project import get_project_settings
-
-
-from scrapy import signals
-
-from scrapy.crawler import Crawler
 
 # def run_spider(spider):
 #     configure_logging({'LOG_FORMAT': '%(levelname)s: %(message)s'})
@@ -218,6 +206,16 @@ class RunGrabber:
         reactor.run(installSignalHandlers=0)
 
     def addCrawlers(self):
-        d = self.runner.crawl(TpuSpider)
+        d = self.runner.crawl(TpuSpider) #+
+        d = self.runner.crawl(CaltechSpider) #+
+        d = self.runner.crawl(CambridgeSpider)#+
+        d = self.runner.crawl(HarvardSpider)#+
+        d = self.runner.crawl(ItmoSpider) #Кривовато но работает
+        d = self.runner.crawl(NsuSpider) #+
+        d = self.runner.crawl(NusSpider)#+
+        d = self.runner.crawl(SpbuSpider)#+
+        d = self.runner.crawl(StanfordSpider) # +
+        d = self.runner.crawl(TsuSpider) #+
+
         # reactor.run(installSignalHandlers=0)
         # d.addBoth(lambda _: reactor.stop())
