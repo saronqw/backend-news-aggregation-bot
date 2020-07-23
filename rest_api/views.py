@@ -15,13 +15,11 @@ from rest_api.models import NewsItem, University
 from rest_api.serializers import NewsItemSerializer, UniversitySerializer
 
 
-
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
         token = Token.objects.create(user=instance)
         print(token.key)
-
 
 
 class NewsItemLastWeekViewSet(viewsets.ViewSet):
@@ -35,8 +33,7 @@ class NewsItemLastWeekViewSet(viewsets.ViewSet):
 
         name = params.get("name", "all")
 
-        self.update_news()
-        time.sleep(2)
+        # self.update_news()
 
         if name == "all" or name is None:
             queryset = NewsItem.objects.filter(pub_date__range=[count_days_ago, datetime.now()])
@@ -67,7 +64,6 @@ class NewsItemLastWeekViewSet(viewsets.ViewSet):
         # d = runner.crawl(TpuSpider)
         # d.addBoth(lambda _: reactor.stop())
         # reactor.run()  # the script will block here until the crawling is finished
-
 
 
 class NewsItemViewSet(viewsets.ModelViewSet):

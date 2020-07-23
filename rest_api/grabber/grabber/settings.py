@@ -17,7 +17,7 @@ NEWSPIDER_MODULE = 'rest_api.grabber.grabber.spiders'
 #USER_AGENT = 'grabber (+http://www.yourdomain.com)'
 
 # Obey robots.txt rules
-ROBOTSTXT_OBEY = True
+ROBOTSTXT_OBEY = False
 
 FEED_EXPORT_ENCODING = 'utf-8'
 FEED_FORMAT: 'json'

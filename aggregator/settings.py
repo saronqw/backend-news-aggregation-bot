@@ -56,6 +56,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
+            'debug': True,
         },
     },
 ]
@@ -110,17 +111,12 @@ USE_TZ = False
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
-STATIC_URL = '/static/'
-
-REST_FRAMEWORK = {
-    # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    # 'PAGE_SIZE': 10,
-    # 'DEFAULT_AUTHENTICATION_CLASSES': [
-    #     #'rest_framework.authentication.Bas',
-    #     #'rest_framework_simplejwt.authentication.JWTAuthentication',
-    # ]
-}
+# STATIC_URL = '/home/saronqw/PythonProjects/aggregator/static/'
+STATIC_URL = 'http://46.180.235.39:8000/'
+# STATIC_URL = '/static/'
 
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static")
 ]
+
+STATIC_ROOT = '/home/saronqw/PythonProjects/aggregator/static/'

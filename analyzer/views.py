@@ -29,21 +29,35 @@ class LineChartJSONView(BaseLineOptionsChartView):
         return []
 
     def get_labels(self):
-        return [
-            ['Big', 'Data'],
-            ['Носки с', 'сандалиями'],
-            ['Искусственный', 'интеллект'],
-            ['Разумное', 'потребление'],
-            ['5G', 'internet'],
-            ['Пустые', 'города'],
-            ['Last Of', 'Us 2'],
+        labels = [
+            # ['Big', 'Data'],
+            # ['Носки с', 'сандалиями'],
+            # ['Искусственный', 'интеллект'],
+            # ['Разумное', 'потребление'],
+            # ['5G', 'internet'],
+            'Empty cities',
+            'Last Of Us 2',
             'LGBT',
             'BTS',
             'COVID19'
         ]
+        labels.reverse()
+        return labels
 
     def get_data(self):
-        return [[16, 32, 64, 128, 256, 277, 325, 433, 629, 666]]
+        data = [
+            # 16,
+            # 32,
+            # 64,
+            # 128,
+            # 256,
+            277,
+            325,
+            433,
+            541,
+            666]
+        data.reverse()
+        return [data]
 
     def get_options(self):
         return {
@@ -66,7 +80,7 @@ class LineChartJSONView(BaseLineOptionsChartView):
             'title': {
                 'display': True,
                 'text': 'Chart of university tags',
-                'fontSize': 32
+                'fontSize': 36
             },
             'animation': {
                 'duration': 1600,
