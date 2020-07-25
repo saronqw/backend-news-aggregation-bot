@@ -3,25 +3,73 @@
 <head>
     <title>Графики</title>
     <link rel="stylesheet" href="{% static 'Chart.css' %}">
+    <link rel="shortcut icon" href="{% static 'favicon.ico' %}">
+    <style>
+        .wrapper {
+            max-width: 94%;
+            margin: 3% auto;
+        }
+
+        .wrapper canvas {
+            margin-bottom: 10%;
+        }
+
+        .wrapper canvas:last-of-type {
+            margin-bottom: 0;
+        }
+    </style>
 </head>
 <body>
-<div style="max-width: 90%; margin: 4% auto">
-    <canvas id="myChart" width="11" height="5"></canvas>
+
+<div class="wrapper">
+
+    <canvas id="tags_chart" width="11" height="5"></canvas>
+    <canvas id="comparison_chart" width="11" height="5"></canvas>
+    <canvas id="count_news_chart" width="11" height="5"></canvas>
 </div>
 
-<script type="text/javascript" src="http://code.jquery.com/jquery-1.10.0.min.js"></script>
+<script type="text/javascript" src="{% static 'jquery-3.5.1.min.js' %}"></script>
 <script type="text/javascript" src="{% static 'Chart.js' %}"></script>
-<script type="text/javascript" src="{% static 'chartjs-plugin-colorschemes.js' %}"></script>
+<script type="text/javascript" src="{% static 'Color.js' %}"></script>
+<script type="text/javascript" src="{% static '' %}"></script>
+
 <script type="text/javascript">
+    var randomScalingFactor = function () {
+        return Math.round(Math.random() * 25 + 5);
+    };
+
+    Chart.defaults.global.defaultFontSize = 24;
+    Chart.defaults.global.title.fontSize = 36;
+
     $.get('{% url "line_chart_json" %}', function (data) {
-        Chart.defaults.global.defaultFontSize = 24;
-        var ctx = $("#myChart").get(0).getContext("2d");
-        new Chart(ctx, {
+        var const_data = data
+        new Chart($("#tags_chart").get(0).getContext("2d"), {
             type: 'bar',
-            data: data.data,
-            options: data.options
+            data: const_data.data,
+            options: const_data.options
         });
     });
+
+    window.setTimeout(function () {
+        $.get('{% url "comparison_chart_json" %}', function (data) {
+            new Chart($("#comparison_chart").get(0).getContext("2d"), {
+                type: 'doughnut',
+                data: data.data,
+                options: data.options
+            });
+        });
+    }, 800);
+
+    window.setTimeout(function () {
+        $.get('{% url "newsperweek_chart_json" %}', function (data) {
+            new Chart($("#count_news_chart").get(0).getContext("2d"), {
+                type: 'line',
+                data: data.data,
+                options: data.options
+            });
+        });
+    }, 1600);
+    {#===========================================#}
 </script>
 </body>
 </html>

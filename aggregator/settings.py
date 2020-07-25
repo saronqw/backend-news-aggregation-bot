@@ -111,12 +111,12 @@ USE_TZ = False
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
-# STATIC_URL = '/home/saronqw/PythonProjects/aggregator/static/'
-STATIC_URL = 'http://46.180.235.39:8000/'
-# STATIC_URL = '/static/'
+# STATIC_URL = '/static/'  # DEBUG
+STATIC_URL = 'http://46.180.235.39/static/'
+
+STATIC_ROOT = '/home/saronqw/summer2020/aggregator/static/'
 
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "static")
+    # os.path.join(BASE_DIR, "static"),  # DEBUG
+    '/home/saronqw/summer2020/aggregator/static/'
 ]
-
-STATIC_ROOT = '/home/saronqw/PythonProjects/aggregator/static/'

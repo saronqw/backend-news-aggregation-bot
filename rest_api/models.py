@@ -5,7 +5,7 @@ class NewsItem(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField(null=True)
     full_text = models.TextField(null=True)
-    link = models.CharField(max_length=200)
+    link = models.CharField(max_length=500)
     university = models.ForeignKey('University', related_name='news', on_delete=models.CASCADE, null=True)
     pub_date = models.DateTimeField(null=True)
 
