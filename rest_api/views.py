@@ -25,7 +25,6 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
 class NewsItemLastWeekViewSet(viewsets.ViewSet):
 
     def list(self, request):
-
         params = request.query_params
         interval = params.get("interval", "seven_days")
 
@@ -33,7 +32,7 @@ class NewsItemLastWeekViewSet(viewsets.ViewSet):
 
         name = params.get("name", "all")
 
-        self.update_news()
+        # self.update_news()
 
         if name == "all" or name is None:
             queryset = NewsItem.objects.filter(pub_date__range=[count_days_ago, datetime.now()])
@@ -51,7 +50,7 @@ class NewsItemLastWeekViewSet(viewsets.ViewSet):
         return {
             'one_day': 1,
             'three_days': 3,
-            'seven_days': 15,
+            'seven_days': 7,
         }[interval]
 
     def update_news(self):

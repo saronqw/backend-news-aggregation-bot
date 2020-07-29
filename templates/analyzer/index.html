@@ -53,7 +53,7 @@
     window.setTimeout(function () {
         $.get('{% url "comparison_chart_json" %}', function (data) {
             new Chart($("#comparison_chart").get(0).getContext("2d"), {
-                type: 'doughnut',
+                type: 'polarArea',
                 data: data.data,
                 options: data.options
             });
