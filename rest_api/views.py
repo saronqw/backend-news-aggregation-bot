@@ -32,12 +32,12 @@ class NewsItemLastWeekViewSet(viewsets.ViewSet):
 
         name = params.get("name", "all")
 
-        # self.update_news()
+        self.update_news()
 
         if name == "all" or name is None:
-            queryset = NewsItem.objects.filter(pub_date__range=[count_days_ago, datetime.now()])
+            queryset = NewsItem.objects.filter(pub_date__range=[count_days_ago, datetime.now()]).order_by('-pub_date')
         else:
-            queryset = NewsItem.objects.filter(pub_date__range=[count_days_ago, datetime.now()], university__name=name)
+            queryset = NewsItem.objects.filter(pub_date__range=[count_days_ago, datetime.now()], university__name=name).order_by('-pub_date')
 
         serializer = NewsItemSerializer(queryset, many=True, context={'request': request})
         return Response(serializer.data)

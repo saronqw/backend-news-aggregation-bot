@@ -11,24 +11,11 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='newsitem',
-            name='full_text',
-            field=models.TextField(null=True),
-        ),
+
         migrations.AlterField(
             model_name='newsitem',
             name='link',
             field=models.CharField(max_length=500),
         ),
-        migrations.CreateModel(
-            name='Keyword',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('coef', models.FloatField()),
-                ('count', models.IntegerField()),
-                ('tag', models.CharField(max_length=100)),
-                ('university', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='rest_api.University')),
-            ],
-        ),
+
     ]

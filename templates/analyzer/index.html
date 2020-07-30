@@ -26,50 +26,88 @@
     <canvas id="tags_chart" width="11" height="5"></canvas>
     <canvas id="comparison_chart" width="11" height="5"></canvas>
     <canvas id="count_news_chart" width="11" height="5"></canvas>
+    <canvas id="boxplot_news_chart" width="11" height="5"></canvas>
+    <canvas id="count_words_chart" width="11" height="5"></canvas>
+    <canvas id="boxplot_words_chart" width="11" height="5"></canvas>
 </div>
 
 <script type="text/javascript" src="{% static 'jquery-3.5.1.min.js' %}"></script>
 <script type="text/javascript" src="{% static 'Chart.js' %}"></script>
 <script type="text/javascript" src="{% static 'Color.js' %}"></script>
-<script type="text/javascript" src="{% static '' %}"></script>
+<script type="text/javascript" src="{% static 'ChartBoxPlot.min.js' %}"></script>
 
 <script type="text/javascript">
-    var randomScalingFactor = function () {
-        return Math.round(Math.random() * 25 + 5);
-    };
 
     Chart.defaults.global.defaultFontSize = 24;
     Chart.defaults.global.title.fontSize = 36;
 
     $.get('{% url "line_chart_json" %}', function (data) {
-        var const_data = data
-        new Chart($("#tags_chart").get(0).getContext("2d"), {
-            type: 'bar',
-            data: const_data.data,
-            options: const_data.options
-        });
+        window.setTimeout(function () {
+            var const_data = data
+            new Chart($("#tags_chart").get(0).getContext("2d"), {
+                type: 'bar',
+                data: const_data.data,
+                options: const_data.options
+            });
+        }, 200);
     });
 
-    window.setTimeout(function () {
-        $.get('{% url "comparison_chart_json" %}', function (data) {
+
+    $.get('{% url "comparison_chart_json" %}', function (data) {
+        window.setTimeout(function () {
             new Chart($("#comparison_chart").get(0).getContext("2d"), {
                 type: 'polarArea',
                 data: data.data,
                 options: data.options
             });
-        });
-    }, 800);
+        }, 800);
+    });
 
-    window.setTimeout(function () {
-        $.get('{% url "newsperweek_chart_json" %}', function (data) {
+
+    $.get('{% url "newsperweek_chart_json" %}', function (data) {
+        window.setTimeout(function () {
             new Chart($("#count_news_chart").get(0).getContext("2d"), {
                 type: 'line',
                 data: data.data,
                 options: data.options
             });
-        });
-    }, 1600);
-    {#===========================================#}
+        }, 1600);
+    });
+
+
+
+    $.get('{% url "boxplot_news_chart_json" %}', function (data) {
+        window.setTimeout(function () {
+            new Chart($("#boxplot_news_chart").get(0).getContext("2d"), {
+                type: 'boxplot',
+                data: data.data,
+                options: data.options
+            });
+        }, 2400);
+    });
+
+
+    $.get('{% url "wordsperweek_chart_json" %}', function (data) {
+        window.setTimeout(function () {
+            new Chart($("#count_words_chart").get(0).getContext("2d"), {
+                type: 'line',
+                data: data.data,
+                options: data.options
+            });
+        }, 3200);
+    });
+
+    $.get('{% url "boxplot_news_chart_json" %}', function (data) {
+        window.setTimeout(function () {
+            new Chart($("#boxplot_words_chart").get(0).getContext("2d"), {
+                type: 'boxplot',
+                data: data.data,
+                options: data.options
+            });
+        }, 4000);
+    });
+
+
 </script>
 </body>
 </html>

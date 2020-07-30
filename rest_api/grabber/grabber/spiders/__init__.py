@@ -61,9 +61,9 @@ class CaltechSpider(scrapy.Spider):
             description = description + ' ' + full_text[0:][:100]
         if description != "":
             item = ScrapyNewsItem()
-            item['title'] = title.strip()
-            item['description'] = description
-            item['full_text'] = full_text
+            item['title'] = title.strip().replace(';', ' ')
+            item['description'] = description.replace(';', ' ')
+            item['full_text'] = full_text.replace(';', ' ')
             item['link'] = newsUrl
             item['pub_date'] = datatime
             universityItem = University(id=self.universityId)
@@ -75,7 +75,7 @@ class CaltechSpider(scrapy.Spider):
         if news_item:
             self.lastTitle = (news_item[0]).title
         for quote in response.css('div.article-teaser__info'):
-            title = quote.css('div.article-teaser__title a::text').get().strip()
+            title = quote.css('div.article-teaser__title a::text').get().strip().replace(';', ' ')
             if title == self.lastTitle:
                 exit(0)
             newsURL = quote.css('div.article-teaser__title a.article-teaser__link::attr(href)').get()
@@ -121,13 +121,16 @@ class CambridgeSpider(scrapy.Spider):
             'div.view-content div.views-row div.view-image-credit span::text').get()).strip()  # '05 June 2020'
         if datatime_ruw != 'None' and datatime_ruw != '' and datatime_ruw != None:
             datatime = str(datetime.datetime.strptime(datatime_ruw, '%d %b %Y'))
-        if len(description) < 100:
-            description = description + ' ' + full_text[0:][:100]
+        if len(description) < 100 and full_text != '':
+            description = description + ' ' + full_text[:100]
+        elif len(full_text) < 100:
+            full_text = full_text + ' ' + description[:100]
+
         if not (title == 'None' and description == ' ' and full_text == ''):
             item = ScrapyNewsItem()
-            item['title'] = title.strip()
-            item['description'] = description
-            item['full_text'] = full_text
+            item['title'] = title.strip().replace(';', ' ')
+            item['description'] = description.replace(';', ' ')
+            item['full_text'] = full_text.replace(';', ' ')
             item['link'] = newsUrl
             item['pub_date'] = datatime
             universityItem = University(id=self.universityId)
@@ -139,7 +142,7 @@ class CambridgeSpider(scrapy.Spider):
         if news_item:
             self.lastTitle = (news_item[0]).title
         for quote in response.css('article.clearfix.cam-horizontal-teaser.cam-teaser'):
-            title = str(quote.css('h3.cam-teaser-title a::text').get()).strip()
+            title = str(quote.css('h3.cam-teaser-title a::text').get()).strip().replace(';', ' ')
             if title == self.lastTitle:
                 exit(0)
             newsUrl = quote.css('h3.cam-teaser-title a::attr(href)').get().strip()
@@ -182,9 +185,9 @@ class HarvardSpider(scrapy.Spider):
         if len(description) < 100:
             description = description + ' ' + full_text[0:][:100]
         item = ScrapyNewsItem()
-        item['title'] = title.strip()
-        item['description'] = description
-        item['full_text'] = full_text
+        item['title'] = title.strip().replace(';', ' ')
+        item['description'] = description.replace(';', ' ')
+        item['full_text'] = full_text.replace(';', ' ')
         item['link'] = newsUrl
         item['pub_date'] = datatime
         universityItem = University(id=self.universityId)
@@ -196,7 +199,7 @@ class HarvardSpider(scrapy.Spider):
         if news_item:
             self.lastTitle = (news_item[0]).title
         for quote in response.css('div.tz-article-image__meta'):
-            title = quote.css('h2.tz-article-image__title a::text').get().strip()
+            title = quote.css('h2.tz-article-image__title a::text').get().strip().replace(';', ' ')
             if title == self.lastTitle:
                 exit(0)
             newsURL = quote.css('h2.tz-article-image__title a::attr(href)').get()
@@ -256,9 +259,9 @@ class ItmoSpider(scrapy.Spider):
         newsUrl = response.request.url
         if len(description) < 100:
             description = description + ' ' + full_text[0:][:100]
-        item['title'] = item['title']
-        item['description'] = description
-        item['full_text'] = full_text
+        item['title'] = item['title'].replace(';', ' ')
+        item['description'] = description.replace(';', ' ')
+        item['full_text'] = full_text.replace(';', ' ')
         item['link'] = newsUrl
         item['pub_date'] = datatime
         universityItem = University(id=self.universityId)
@@ -277,7 +280,7 @@ class ItmoSpider(scrapy.Spider):
                 for i in range(0, l):
                     lastTitles[i] = news[i].title
         for quote in response.css('ul.triplet li'):
-            title = quote.css('h4 a::text').get().strip()
+            title = quote.css('h4 a::text').get().strip().replace(';', ' ')
             if title in lastTitles:
                 exit(0)
             newsURL = quote.css('h4 a::attr(href)').get()
@@ -289,7 +292,7 @@ class ItmoSpider(scrapy.Spider):
         next_page = response.css('ul.pagination-custom.row.flex-center div.col-1 a::attr(href)').getall()
         if next_page:
             if len(next_page) > 1:
-                yield response.follow(next_page, callback=self.parse)
+                yield response.follow(next_page[1], callback=self.parse)
 
 
 # scrapy crawl nsu_news
@@ -321,9 +324,9 @@ class NsuSpider(scrapy.Spider):
         if len(description) < 100:
             description = description + ' ' + full_text[0:][:100]
         item = ScrapyNewsItem()
-        item['title'] = title.strip()
-        item['description'] = description
-        item['full_text'] = full_text
+        item['title'] = title.strip().replace(';', ' ')
+        item['description'] = description.replace(';', ' ')
+        item['full_text'] = full_text.replace(';', ' ')
         item['link'] = newsUrl
         item['pub_date'] = datatime
         universityItem = University(id=self.universityId)
@@ -335,7 +338,7 @@ class NsuSpider(scrapy.Spider):
         if news_item:
             self.lastTitle = (news_item[0]).title
         for quote in response.css('div.news-card'):
-            title = str(quote.css('a.name::text').get()).strip()
+            title = str(quote.css('a.name::text').get()).strip().replace(';', ' ')
             if title == self.lastTitle:
                 exit(0)
             newsUrl = 'https://english.nsu.ru{}'.format(quote.css('a.name::attr(href)').get())
@@ -391,9 +394,9 @@ class NusSpider(scrapy.Spider):
             description = description + ' ' + full_text[0:][:100]
         if not (title == 'None' and description == 'None ' and full_text == ''):
             item = ScrapyNewsItem()
-            item['title'] = title.strip()
-            item['description'] = description
-            item['full_text'] = full_text
+            item['title'] = title.strip().replace(';', ' ')
+            item['description'] = description.replace(';', ' ')
+            item['full_text'] = full_text.replace(';', ' ')
             item['link'] = newsUrl
             item['pub_date'] = datatime
             universityItem = University(id=self.universityId)
@@ -401,12 +404,22 @@ class NusSpider(scrapy.Spider):
             yield item
 
     def parse(self, response):
-        news_item = NewsItem.objects.filter(university_id=self.universityId).order_by('-pub_date')
-        if news_item:
-            self.lastTitle = (news_item[0]).title
+        news_items = NewsItem.objects.filter(university_id=self.universityId).order_by('-pub_date')
+        lastTitles = [None] * 6
+        if news_items:
+            l = len(news_items)
+            if l > 0:
+                if l > 5:
+                    l = 5
+                news = news_items[0:][:l]
+                for i in range(0, l):
+                    lastTitles[i] = news[i].title
+        # news_item = NewsItem.objects.filter(university_id=self.universityId).order_by('-pub_date')
+        # if news_item:
+        #     self.lastTitle = (news_item[0]).title
         for quote in response.css('div.col-lg-6.col-md-6.col-sm-6.col-xs-12.highlight-top'):
-            title = str(quote.css('h2.highlight-title a::text').get()).strip()
-            if title == self.lastTitle:
+            title = str(quote.css('h2.highlight-title a::text').get()).strip().replace(';', ' ')
+            if title in lastTitles:
                 exit(0)
             newsUrl = quote.css('h2.highlight-title a::attr(href)').get()
             if newsUrl[0] == 'h':
@@ -445,9 +458,9 @@ class SpbuSpider(scrapy.Spider):
         newsUrl = response.request.url
         description = full_text[0:][:100]
         item = ScrapyNewsItem()
-        item['title'] = title.strip()
-        item['description'] = description
-        item['full_text'] = full_text
+        item['title'] = title.strip().replace(';', ' ')
+        item['description'] = description.replace(';', ' ')
+        item['full_text'] = full_text.replace(';', ' ')
         item['link'] = newsUrl
         item['pub_date'] = datatime
         universityItem = University(id=self.universityId)
@@ -462,7 +475,7 @@ class SpbuSpider(scrapy.Spider):
         quots1 = response.css('tr.cat-list-row1')
         qupts = quots0 + quots1
         for quote in qupts:
-            title = quote.css('td.list-title a::text').get().strip()
+            title = quote.css('td.list-title a::text').get().strip().replace(';', ' ')
             if title == self.lastTitle:
                 exit(0)
             newsURL = quote.css('td.list-title a::attr(href)').get()
@@ -503,9 +516,9 @@ class StanfordSpider(scrapy.Spider):
         if len(description) < 100:
             description = description + ' ' + full_text[0:][:100]
         if not (description == 'None ' and full_text == '' and datatime == '2000-01-01 00:00:00'):
-            item['title'] = item['title']
-            item['description'] = description
-            item['full_text'] = full_text
+            item['title'] = item['title'].replace(';', ' ')
+            item['description'] = description.replace(';', ' ')
+            item['full_text'] = full_text.replace(';', ' ')
             item['link'] = newsUrl
             item['pub_date'] = datatime
             universityItem = University(id=self.universityId)
@@ -526,7 +539,7 @@ class StanfordSpider(scrapy.Spider):
         for quote in response.css('li.newsfeed-item.row'):
             checkdescription = quote.css('p.newsfeed-item-excerpt::text').get()
             if checkdescription != 'None' and checkdescription != None and checkdescription != '':
-                title = str(quote.css('h3.newsfeed-item-title::text').get()).strip()
+                title = str(quote.css('h3.newsfeed-item-title::text').get()).strip().replace(';', ' ')
                 if title in self.lastTitles:
                     exit(0)
                 newsUrl = quote.css('div.col-xs-9.col-sm-8 a::attr(href)').get()
@@ -569,22 +582,23 @@ class TpuSpider(scrapy.Spider):
         newsUrl = response.request.url
         if len(description) < 100:
             description = description + ' ' + full_text[0:][:100]
-        item = ScrapyNewsItem()
-        item['title'] = title.strip()
-        item['description'] = description
-        item['full_text'] = full_text
-        item['link'] = newsUrl
-        item['pub_date'] = datatime
-        universityItem = University(id=self.universityId)
-        item['university'] = universityItem
-        yield item
+        if title != 'None':
+            item = ScrapyNewsItem()
+            item['title'] = title.strip().replace(';', ' ')
+            item['description'] = description.replace(';', ' ')
+            item['full_text'] = full_text.replace(';', ' ')
+            item['link'] = newsUrl
+            item['pub_date'] = datatime
+            universityItem = University(id=self.universityId)
+            item['university'] = universityItem
+            yield item
 
     def parse(self, response):
         news_item = NewsItem.objects.filter(university_id=self.universityId).order_by('-pub_date')
         if news_item:
             self.lastTitle = (news_item[0]).title
         for quote in response.css('div.row div.col-lg-9.item-body'):
-            title = str(quote.css('h3.title::attr(title)').get()).strip()
+            title = str(quote.css('h3.title::attr(title)').get()).strip().replace(';', ' ')
             if title == self.lastTitle:
                 exit(0)
             newsUrl = quote.css('a::attr(href)').get()
@@ -624,15 +638,16 @@ class TsuSpider(scrapy.Spider):
         newsUrl = response.request.url
         if len(description) < 100:
             description = description + ' ' + full_text[0:][:100]
-        item = ScrapyNewsItem()
-        item['title'] = title.strip()
-        item['description'] = description
-        item['full_text'] = full_text
-        item['link'] = newsUrl
-        item['pub_date'] = datatime
-        universityItem = University(id=self.universityId)
-        item['university'] = universityItem
-        yield item
+        if full_text != '':
+            item = ScrapyNewsItem()
+            item['title'] = title.strip().replace(';', ' ')
+            item['description'] = description.replace(';', ' ')
+            item['full_text'] = full_text.replace(';', ' ')
+            item['link'] = newsUrl
+            item['pub_date'] = datatime
+            universityItem = University(id=self.universityId)
+            item['university'] = universityItem
+            yield item
 
     def parse(self, response):
         news_item = NewsItem.objects.filter(university_id=self.universityId).order_by('-pub_date')
@@ -642,7 +657,7 @@ class TsuSpider(scrapy.Spider):
             title = quote.css('div.news_name a::text').get()
             if title is None or title == 'None' or title == '':
                 title = quote.css('div.news_name a p::text').get()
-            title = title.strip()
+            title = title.strip().replace(';', ' ')
             if title == self.lastTitle:
                 exit(0)
             newsURL = quote.css('a::attr(href)').get()
