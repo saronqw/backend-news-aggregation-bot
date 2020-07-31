@@ -175,8 +175,55 @@ class ComparisonChartJSONView(BaseLineOptionsChartView):
             # 'rotation': math.pi
         }
 
+def plotbox_news_number(years):
+    count_university = len(University.objects.all())
+    array = {}
 
-def calc_week_publication_number():
+    for university_id in range(1, count_university + 1):
+        array[university_id] = {}
+        for year in years:
+            current_week = datetime(year, 1, 1, 0, 0) + timedelta(7)
+            news_items = NewsItem.objects.filter(pub_date__year=year, university_id=university_id).order_by('pub_date')
+            count = 0
+            (array[university_id])[year] = []
+            for news_item in news_items:
+                if news_item.pub_date < current_week:
+                    count += 1
+                else:
+                    (array[university_id])[year].append(count)
+                    current_week += timedelta(7)
+                    while news_item.pub_date >= current_week:
+                        (array[university_id])[year].append(0)
+                        current_week += timedelta(7)
+                    count = 1
+    return array
+
+
+def plotbox_words_number(years):
+    count_university = len(University.objects.all())
+    array = {}
+
+    for university_id in range(1, count_university + 1):
+        array[university_id] = {}
+        for year in years:
+            current_week = datetime(year, 1, 1, 0, 0) + timedelta(7)
+            news_items = NewsItem.objects.filter(pub_date__year=year, university_id=university_id).order_by('pub_date')
+            count = 0
+            (array[university_id])[year] = []
+            for news_item in news_items:
+                if news_item.pub_date < current_week:
+                    count += len(news_item.full_text.split(' '))
+                else:
+                    (array[university_id])[year].append(count)
+                    current_week += timedelta(7)
+                    while news_item.pub_date >= current_week:
+                        (array[university_id])[year].append(0)
+                        current_week += timedelta(7)
+                    count = len(news_item.full_text.split(' '))
+    return array
+
+
+def calc_month_publication_number():
     count_days_ago = datetime.now() - timedelta(3 * 370)
     news_items = NewsItem.objects.filter(pub_date__range=[count_days_ago, datetime.now()]).order_by('-pub_date')
     today = datetime.now()
@@ -187,15 +234,13 @@ def calc_week_publication_number():
     counts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
     for item in news_items:
-        id = item.university_id
-        news_date = item.pub_date
-        while news_date < week_ago_date:
+        while item.pub_date < week_ago_date:
             for i in range(1, len(pubNumArray)):
                 (pubNumArray[i])[label] = counts[i]
             counts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
             label = label - timedelta(days=28)
             week_ago_date = week_ago_date - timedelta(days=28)
-        counts[id] += 1
+        counts[item.university_id] += 1
 
     return pubNumArray
 
@@ -226,7 +271,7 @@ def calc_publication_words_number():
 
 
 class NewsPerWeekChartJSONView(BaseLineOptionsChartView):
-    university_array = calc_week_publication_number()
+    university_array = calc_month_publication_number()
 
     def get_providers(self):
         queryset = University.objects.all()
@@ -355,6 +400,8 @@ class WordsPerWeekChartJSONView(BaseLineOptionsChartView):
 
 
 class BoxPlotNewsChartJSONView(BaseLineOptionsChartView):
+    years = [2017, 2018, 2019]
+    news_number_data = plotbox_news_number(years)
 
     def get_providers(self):
         providers = [
@@ -373,12 +420,12 @@ class BoxPlotNewsChartJSONView(BaseLineOptionsChartView):
 
     def get_dataset_options(self, index, color):
         color_scheme = [
-                        'rgba(31,119,180, 0.55)', 'rgba(255,127,14, 0.55)',
-                        'rgba(44,160,44, 0.55)', 'rgba(214,39,40, 0.55)',
-                        'rgba(148,103,189, 0.55)', 'rgba(140,86,75, 0.55)',
-                        'rgba(227,119,194, 0.55)', 'rgba(127,127,127, 0.55)',
-                        'rgba(188,189,34, 0.5)', 'rgba(23,190,207, 0.55)'
-                    ]
+            'rgba(31,119,180, 0.55)', 'rgba(255,127,14, 0.55)',
+            'rgba(44,160,44, 0.55)', 'rgba(214,39,40, 0.55)',
+            'rgba(148,103,189, 0.55)', 'rgba(140,86,75, 0.55)',
+            'rgba(227,119,194, 0.55)', 'rgba(127,127,127, 0.55)',
+            'rgba(188,189,34, 0.55)', 'rgba(23,190,207, 0.55)'
+        ]
 
         color_scheme_without_alpha = [
             'rgb(0,0,139)', 'rgb(255,69,0)',
@@ -392,83 +439,28 @@ class BoxPlotNewsChartJSONView(BaseLineOptionsChartView):
 
         color_index = 0
         for item in options:
-
             item.update(
                 {
                     'backgroundColor': color_scheme[color_index],
                     'borderColor': color_scheme_without_alpha[color_index],
                     'borderWidth': 1,
-                    'itemRadius': 0,
+                    'itemRadius': 0
                 }
             )
             color_index += 1
 
-        for item in options:
-            item.update(
-                {
-                    'borderWidth': 1,
-                    'itemRadius': 0,
-                }
-            )
-
         return options[index]
 
     def get_labels(self):
-        return [2017, 2018, 2019]
+        return self.years
 
     def get_data(self):
-        return [
-            [
-                [9, 8, 10, 8, 7, 6, 10, 7, 9, 6, 5, 8, 10, 9, 8, 7, 5, 5, 10, 8, 7, 9, 5, 6, 7, 6, 5, 8, 8, 8, 8, 9, 10, 5, 6, 7, 8, 7, 7, 5, 6, 10, 8, 10, 6, 8, 6, 5, 8, 8, 10, 9],
-                [0, 3, 3, 0, 7, 4, 4, 5, 4, 6, 5, 5, 7, 0, 1, 0, 7, 1, 4, 5, 7, 7, 3, 7, 5, 7, 7, 7, 3, 5, 7, 1, 1, 6, 2, 5, 0, 1, 2, 5, 6, 5, 6, 4, 6, 5, 4, 2, 3, 5, 4, 2],
-                [5, 5, 9, 5, 7, 8, 5, 2, 4, 1, 2, 3, 10, 2, 2, 10, 9, 4, 9, 3, 1, 8, 4, 3, 8, 5, 10, 4, 2, 7, 10, 8, 7, 5, 10, 9, 9, 7, 3, 3, 6, 2, 2, 7, 8, 9, 10, 5, 4, 4, 10, 1]
-            ],
-            [
-                [9, 9, 6, 3, 11, 11, 8, 9, 4, 5, 6, 7, 6, 6, 6, 10, 9, 3, 4, 4, 10, 5, 4, 9, 4, 12, 9, 4, 4, 3, 12, 7, 10, 4, 7, 5, 5, 8, 3, 12, 6, 10, 9, 9, 9, 5, 11, 7, 7, 7, 3, 10],
-                [9, 7, 7, 9, 5, 4, 9, 6, 6, 8, 4, 4, 5, 5, 6, 4, 9, 5, 5, 5, 8, 8, 4, 6, 7, 5, 6, 6, 8, 7, 7, 8, 6, 8, 6, 4, 5, 4, 9, 6, 9, 4, 6, 9, 7, 6, 9, 9, 8, 4, 4, 7],
-                [7, 7, 3, 6, 6, 5, 7, 5, 3, 7, 5, 7, 5, 6, 6, 6, 4, 7, 7, 5, 4, 3, 3, 5, 3, 3, 7, 3, 5, 6, 5, 3, 4, 7, 7, 7, 6, 3, 6, 5, 3, 3, 4, 3, 5, 3, 4, 7, 4, 7, 7, 4]
-            ],
-            [
-                [6, 3, 3, 8, 8, 7, 3, 6, 5, 4, 6, 6, 4, 5, 3, 5, 5, 4, 4, 4, 7, 3, 3, 6, 7, 5, 7, 5, 8, 6, 4, 8, 4, 3, 5, 5, 5, 4, 3, 7, 5, 4, 3, 3, 8, 7, 8, 8, 3, 4, 6, 6],
-                [6, 8, 6, 3, 9, 7, 3, 7, 7, 6, 3, 3, 5, 9, 9, 10, 4, 8, 1, 2, 7, 2, 10, 10, 3, 8, 4, 7, 1, 10, 1, 5, 7, 2, 7, 6, 3, 2, 3, 1, 5, 7, 4, 5, 1, 7, 1, 10, 1, 9, 5, 4],
-                [5, 2, 5, 4, 3, 2, 2, 4, 5, 3, 2, 4, 3, 4, 4, 4, 2, 3, 5, 1, 5, 3, 5, 5, 1, 6, 1, 1, 1, 3, 5, 2, 3, 2, 4, 6, 6, 5, 6, 5, 3, 5, 6, 5, 3, 1, 3, 3, 4, 2, 2, 3]
-            ],
-            [
-                [2, 3, 8, 1, 1, 9, 4, 10, 8, 2, 3, 1, 1, 4, 7, 9, 2, 5, 7, 2, 2, 2, 9, 4, 3, 4, 2, 8, 5, 8, 2, 4, 8, 5, 7, 4, 2, 3, 2, 8, 1, 9, 8, 8, 9, 5, 6, 2, 4, 10, 6, 10],
-                [9, 2, 10, 3, 8, 11, 9, 2, 5, 4, 6, 4, 9, 3, 4, 10, 10, 7, 6, 4, 5, 11, 4, 4, 10, 10, 2, 7, 4, 10, 2, 4, 3, 6, 11, 8, 9, 5, 9, 9, 3, 5, 3, 4, 8, 2, 2, 7, 7, 10, 8, 9],
-                [8, 4, 4, 7, 6, 8, 2, 6, 4, 10, 5, 5, 10, 10, 1, 4, 10, 4, 5, 7, 6, 4, 2, 7, 3, 6, 6, 6, 8, 10, 8, 7, 3, 7, 3, 4, 7, 3, 3, 1, 5, 9, 1, 1, 2, 9, 3, 6, 4, 7, 1, 5]
-            ],
-            [
-                [1, 10, 2, 6, 10, 4, 6, 7, 10, 5, 7, 4, 1, 1, 7, 6, 10, 7, 6, 10, 5, 5, 2, 2, 1, 2, 8, 8, 3, 10, 4, 8, 5, 3, 10, 9, 8, 4, 5, 2, 10, 2, 4, 1, 9, 8, 6, 5, 9, 9, 6, 9],
-                [2, 4, 5, 4, 10, 3, 7, 10, 10, 7, 4, 4, 2, 3, 7, 6, 8, 4, 3, 6, 10, 1, 6, 9, 9, 1, 4, 3, 6, 7, 2, 9, 10, 7, 1, 9, 4, 7, 6, 8, 5, 5, 4, 5, 6, 9, 6, 4, 6, 4, 6, 10],
-                [6, 9, 8, 5, 7, 7, 9, 8, 8, 9, 5, 5, 5, 5, 8, 7, 9, 8, 8, 5, 6, 6, 4, 8, 8, 5, 7, 6, 4, 6, 4, 8, 7, 5, 7, 6, 8, 5, 8, 4, 5, 8, 8, 7, 7, 5, 9, 8, 7, 8, 4, 9]
-            ],
-            [
-                [5, 1, 9, 8, 10, 4, 3, 8, 1, 5, 2, 7, 2, 3, 8, 10, 4, 8, 3, 10, 8, 8, 1, 3, 10, 5, 8, 2, 10, 4, 9, 7, 7, 10, 1, 8, 1, 1, 8, 4, 7, 10, 7, 1, 8, 2, 10, 5, 7, 10, 10, 8],
-                [1, 3, 2, 0, 1, 6, 0, 2, 4, 7, 2, 3, 6, 6, 4, 0, 2, 2, 3, 6, 1, 1, 7, 0, 1, 7, 7, 1, 1, 4, 4, 3, 7, 0, 1, 0, 2, 0, 2, 0, 7, 1, 2, 6, 5, 0, 0, 0, 2, 6, 2, 2],
-                [3, 10, 4, 5, 5, 1, 10, 7, 6, 6, 7, 5, 1, 6, 4, 4, 5, 6, 4, 8, 4, 1, 7, 10, 8, 7, 9, 10, 9, 3, 6, 6, 3, 2, 9, 4, 10, 1, 2, 6, 10, 7, 9, 5, 6, 10, 4, 10, 6, 3, 5, 8]
-            ],
-            [
-                [4, 4, 7, 6, 5, 7, 3, 3, 4, 2, 2, 2, 4, 6, 3, 4, 2, 7, 7, 4, 6, 6, 7, 6, 6, 4, 4, 4, 7, 6, 2, 4, 6, 3, 5, 5, 6, 7, 4, 3, 6, 7, 7, 5, 6, 5, 6, 3, 7, 7, 6, 3],
-                [1, 2, 5, 4, 2, 2, 4, 1, 4, 4, 4, 2, 1, 2, 5, 4, 1, 4, 1, 5, 3, 4, 3, 1, 2, 1, 1, 3, 5, 3, 4, 3, 3, 2, 5, 2, 5, 4, 5, 1, 3, 3, 5, 2, 1, 1, 2, 2, 2, 1, 5, 3],
-                [7, 7, 5, 8, 6, 2, 7, 9, 5, 9, 2, 6, 2, 4, 10, 10, 9, 5, 9, 8, 6, 10, 6, 8, 3, 7, 7, 4, 6, 4, 4, 10, 10, 8, 10, 3, 7, 5, 5, 4, 3, 7, 10, 5, 7, 10, 4, 10, 7, 4, 9, 8]
-            ],
-            [
-                [4, 3, 5, 6, 7, 6, 7, 7, 5, 5, 3, 4, 6, 3, 6, 4, 4, 6, 6, 7, 3, 4, 5, 6, 4, 3, 6, 4, 6, 4, 6, 6, 5, 6, 4, 5, 3, 5, 7, 6, 6, 4, 4, 3, 7, 7, 3, 5, 6, 7, 6, 4],
-                [2, 6, 4, 6, 6, 6, 4, 6, 8, 5, 8, 5, 4, 6, 7, 5, 3, 6, 2, 6, 6, 7, 6, 4, 7, 5, 4, 8, 8, 8, 8, 3, 2, 8, 6, 7, 7, 6, 8, 5, 5, 2, 3, 3, 2, 8, 2, 6, 5, 2, 5, 6],
-                [5, 4, 5, 5, 3, 3, 6, 7, 6, 3, 7, 3, 6, 6, 6, 6, 6, 4, 3, 5, 6, 7, 5, 6, 4, 3, 3, 5, 6, 7, 6, 7, 5, 3, 7, 4, 4, 3, 7, 5, 7, 4, 3, 4, 7, 4, 6, 7, 5, 7, 4, 6]
-            ],
-            [
-                [5, 6, 7, 4, 7, 8, 9, 6, 7, 8, 7, 5, 4, 6, 6, 4, 6, 8, 6, 3, 4, 9, 3, 5, 6, 7, 7, 6, 8, 7, 5, 6, 3, 6, 9, 7, 4, 9, 7, 7, 7, 6, 3, 9, 5, 8, 9, 3, 7, 3, 7, 5],
-                [6, 6, 6, 4, 5, 2, 6, 9, 7, 5, 3, 3, 4, 5, 5, 6, 4, 7, 2, 3, 2, 7, 3, 7, 5, 5, 2, 9, 9, 8, 3, 2, 9, 4, 2, 2, 3, 4, 6, 5, 7, 7, 8, 6, 8, 5, 8, 2, 9, 5, 2, 7],
-                [9, 4, 5, 5, 10, 6, 6, 7, 7, 4, 7, 5, 7, 9, 8, 7, 9, 4, 9, 9, 6, 8, 6, 6, 7, 5, 4, 7, 9, 5, 7, 7, 9, 8, 10, 8, 5, 8, 10, 4, 9, 5, 8, 7, 9, 6, 9, 5, 6, 4, 9, 7]
-            ],
-            [
-                [1, 5, 8, 10, 5, 3, 3, 6, 2, 1, 8, 5, 7, 2, 10, 7, 4, 8, 2, 6, 1, 6, 4, 2, 6, 8, 6, 4, 5, 10, 7, 10, 1, 9, 8, 1, 9, 10, 4, 8, 6, 10, 3, 6, 4, 3, 6, 7, 4, 6, 1, 3],
-                [7, 6, 8, 7, 4, 3, 1, 2, 6, 3, 4, 4, 10, 5, 4, 8, 1, 8, 3, 9, 4, 7, 5, 3, 1, 9, 5, 10, 4, 4, 1, 9, 8, 2, 1, 1, 7, 1, 9, 8, 10, 9, 9, 7, 10, 9, 6, 1, 9, 10, 4, 5],
-                [8, 2, 9, 4, 5, 7, 4, 7, 9, 3, 1, 7, 5, 9, 4, 4, 2, 9, 5, 7, 9, 3, 4, 7, 1, 1, 4, 6, 3, 2, 6, 2, 1, 3, 1, 8, 2, 7, 5, 8, 2, 3, 9, 4, 8, 3, 2, 3, 7, 9, 3, 9]
-            ]
-        ]
+
+        data_array = []
+        for x in list(self.news_number_data.values()):
+           data_array.append(list(x.values()))
+
+        return data_array
 
     def get_options(self):
         return {
@@ -479,5 +471,80 @@ class BoxPlotNewsChartJSONView(BaseLineOptionsChartView):
             'title': {
                 'display': True,
                 'text': 'Box Plot Chart'
-            }
+            },
+        }
+
+class BoxPlotWordsChartJSONView(BaseLineOptionsChartView):
+    years = [2017, 2018, 2019]
+    news_number_data = plotbox_words_number(years)
+
+    def get_providers(self):
+        providers = [
+            'TPU',
+            'TSU',
+            'NSU',
+            'Harvard',
+            'Stanford',
+            'Caltech',
+            'Cambridge',
+            'ITMO',
+            'NUS',
+            'SPSU',
+        ]
+        return providers
+
+    def get_dataset_options(self, index, color):
+        color_scheme = [
+            'rgba(31,119,180, 0.55)', 'rgba(255,127,14, 0.55)',
+            'rgba(44,160,44, 0.55)', 'rgba(214,39,40, 0.55)',
+            'rgba(148,103,189, 0.55)', 'rgba(140,86,75, 0.55)',
+            'rgba(227,119,194, 0.55)', 'rgba(127,127,127, 0.55)',
+            'rgba(188,189,34, 0.55)', 'rgba(23,190,207, 0.55)'
+        ]
+
+        color_scheme_without_alpha = [
+            'rgb(0,0,139)', 'rgb(255,69,0)',
+            'rgb(0,128,0)', 'rgb(255,0,0)',
+            'rgb(148,0,211)', 'rgb(139,69,19)',
+            'rgb(255,20,147)', 'rgb(112,128,144)',
+            'rgb(205,133,63)', 'rgb(0,128,128)'
+        ]
+
+        options = [ {}, {}, {}, {}, {}, {}, {}, {}, {}, {} ]
+
+        color_index = 0
+        for item in options:
+            item.update(
+                {
+                    'backgroundColor': color_scheme[color_index],
+                    'borderColor': color_scheme_without_alpha[color_index],
+                    'borderWidth': 1,
+                    'itemRadius': 0
+                }
+            )
+            color_index += 1
+
+        return options[index]
+
+    def get_labels(self):
+        return self.years
+
+    def get_data(self):
+
+        data_array = []
+        for x in list(self.news_number_data.values()):
+           data_array.append(list(x.values()))
+
+        return data_array
+
+    def get_options(self):
+        return {
+            'responsive': True,
+            'legend': {
+                'position': 'top',
+            },
+            'title': {
+                'display': True,
+                'text': 'Box Plot Chart'
+            },
         }

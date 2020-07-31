@@ -99,12 +99,22 @@
 
     $.get('{% url "boxplot_news_chart_json" %}', function (data) {
         window.setTimeout(function () {
-            new Chart($("#boxplot_words_chart").get(0).getContext("2d"), {
+            new Chart($("#boxplot_news_chart").get(0).getContext("2d"), {
                 type: 'boxplot',
                 data: data.data,
                 options: data.options
             });
         }, 4000);
+    });
+
+    $.get('{% url "boxplot_words_chart_json" %}', function (data) {
+        window.setTimeout(function () {
+            new Chart($("#boxplot_words_chart").get(0).getContext("2d"), {
+                type: 'boxplot',
+                data: data.data,
+                options: data.options
+            });
+        }, 4800);
     });
 
 

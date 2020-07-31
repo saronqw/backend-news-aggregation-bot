@@ -4,7 +4,7 @@ from rest_framework.routers import DefaultRouter
 
 from . import views
 from .views import LineChartJSONView, ComparisonChartJSONView, NewsPerWeekChartJSONView, KeywordViewSet, \
-    WordsPerWeekChartJSONView, BoxPlotNewsChartJSONView
+    WordsPerWeekChartJSONView, BoxPlotNewsChartJSONView, BoxPlotWordsChartJSONView
 
 router = DefaultRouter()
 router.register(r'keywords', views.KeywordViewSet, basename='keywords')
@@ -18,5 +18,6 @@ urlpatterns = [
     path('newsperweek_chartJSON', NewsPerWeekChartJSONView.as_view(), name='newsperweek_chart_json'),
     path('wordsperweek_chartJSON', WordsPerWeekChartJSONView.as_view(), name='wordsperweek_chart_json'),
     path('boxplot_news_chartJSON', BoxPlotNewsChartJSONView.as_view(), name='boxplot_news_chart_json'),
+    path('boxplot_words_chartJSON', BoxPlotWordsChartJSONView.as_view(), name='boxplot_words_chart_json'),
     path('keywords', keywords_list, name='keywords-list'),
 ]
