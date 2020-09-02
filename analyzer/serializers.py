@@ -1,6 +1,12 @@
 from rest_framework import serializers
 
-from analyzer.models import Keyword
+from analyzer.models import Keyword, KeywordGroup
+
+
+class KeywordGroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = KeywordGroup
+        fields = ['id', 'group_name']
 
 
 class KeywordSerializer(serializers.ModelSerializer):
