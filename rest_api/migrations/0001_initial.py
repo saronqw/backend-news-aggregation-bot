@@ -24,10 +24,11 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('title', models.CharField(max_length=200)),
-                ('description', models.TextField()),
-                ('link', models.CharField(max_length=200)),
-                ('pub_date', models.DateTimeField()),
-                ('university', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='news', to='rest_api.University')),
+                ('description', models.TextField(null=True)),
+                ('full_text', models.TextField(null=True)),
+                ('link', models.CharField(max_length=500)),
+                ('pub_date', models.DateTimeField(null=True)),
+                ('university', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='news', to='rest_api.University', null=True)),
             ],
         ),
     ]
