@@ -1,17 +1,16 @@
 from datetime import *
 
 import numpy
+import time
 from chartjs.views.lines import BaseLineOptionsChartView
 from django.http import HttpResponse
 from django.template import loader
 from rest_framework import viewsets
 from rest_framework.response import Response
 
-from analyzer.models import Keyword
+from analyzer.models import Keyword, KeywordGroup
 from analyzer.serializers import KeywordSerializer
 from rest_api.models import NewsItem, University
-
-max_line = 0
 
 
 def all_top_tags():
@@ -106,7 +105,7 @@ class LineChartJSONView(BaseLineOptionsChartView):
             },
             'title': {
                 'display': True,
-                'text': 'Chart of university tags'
+                'text': 'Top tags universities'
             },
             'animation': {
                 'duration': 1500,
@@ -122,29 +121,29 @@ class ComparisonChartJSONView(BaseLineOptionsChartView):
 
     def get_labels(self):
         labels = [
-            'ТГУ',
-            'НГУ',
-            'Harvard',
-            'Stanford',
-            'Caltech',
-            'Cambridge',
-            'ИТМО',
             'NUS',
-            'СПбГУ',
+            'Harvard',
+            'NSU',
+            'Cambridge',
+            'Caltech',
+            'SPSU',
+            'Stanford',
+            'TSU',
+            'ITMO',
         ]
         return labels
 
     def get_data(self):
         data = [
-            (79 - 35) / 10,
-            (59 - 35) / 10,
-            (58 - 35) / 10,
-            (65 - 35) / 10,
-            (77 - 35) / 10,
-            (71 - 35) / 10,
-            (85 - 35) / 10,
-            (51 - 35) / 10,
-            (75 - 35) / 10,
+            53,
+            58,
+            61,
+            61,
+            67,
+            70,
+            75,
+            78,
+            83,
         ]
         return [data]
 
@@ -169,16 +168,12 @@ class ComparisonChartJSONView(BaseLineOptionsChartView):
             },
             'animation': {
                 'duration': 1500
-            },
-            # 'startAngle': math.pi
-            # 'circumference': math.pi,
-            # 'rotation': math.pi
+            }
         }
 
 def plotbox_news_number(years):
     count_university = len(University.objects.all())
     array = {}
-
     for university_id in range(1, count_university + 1):
         array[university_id] = {}
         for year in years:
@@ -209,17 +204,23 @@ def plotbox_words_number(years):
             current_week = datetime(year, 1, 1, 0, 0) + timedelta(7)
             news_items = NewsItem.objects.filter(pub_date__year=year, university_id=university_id).order_by('pub_date')
             count = 0
+            news_count = 0
             (array[university_id])[year] = []
             for news_item in news_items:
                 if news_item.pub_date < current_week:
                     count += len(news_item.full_text.split(' '))
+                    news_count += 1
                 else:
-                    (array[university_id])[year].append(count)
+                    if news_count == 0:
+                        (array[university_id])[year].append(None)
+                    else:
+                        (array[university_id])[year].append(count // news_count)
                     current_week += timedelta(7)
                     while news_item.pub_date >= current_week:
-                        (array[university_id])[year].append(0)
+                        (array[university_id])[year].append(None)
                         current_week += timedelta(7)
                     count = len(news_item.full_text.split(' '))
+                    news_count = 1
     return array
 
 
@@ -255,17 +256,23 @@ def calc_publication_words_number():
     # pubNumDict = {}
     pubWordsNumArray = [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]
     counts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    news_counts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
     for item in news_items:
         id = item.university_id
         news_date = item.pub_date
         while news_date < week_ago_date:
             for i in range(1, len(pubWordsNumArray)):
-                (pubWordsNumArray[i])[label] = counts[i]
+                if  news_counts[i] == 0:
+                    (pubWordsNumArray[i])[label] = None
+                else:
+                    (pubWordsNumArray[i])[label] = counts[i] // news_counts[i]
             counts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            news_counts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
             label = label - timedelta(days=28)
             week_ago_date = week_ago_date - timedelta(days=28)
         counts[id] += len(item.full_text.split(' '))
+        news_counts[id] += 1
 
     return pubWordsNumArray
 
@@ -303,12 +310,6 @@ class NewsPerWeekChartJSONView(BaseLineOptionsChartView):
             temp_data = list(dict.values())
             temp_data.reverse()
             return_array.append(temp_data)
-
-        # one_date = return_array
-        # one_date.sort()
-        # global max_line
-        # max_line = one_date[-1]
-
         return return_array
 
     def get_options(self):
@@ -321,7 +322,7 @@ class NewsPerWeekChartJSONView(BaseLineOptionsChartView):
             'responsive': True,
             'title': {
                 'display': True,
-                'text': 'News per month'
+                'text': 'Publication activity'
             },
             'tooltips': {
                 'mode': 'index',
@@ -330,7 +331,6 @@ class NewsPerWeekChartJSONView(BaseLineOptionsChartView):
                 'yAxes': [{
                     'ticks': {
                         'suggestedMin': 0,
-                        # 'suggestedMax': max_line + 1
                     }
                 }]
             }
@@ -383,7 +383,7 @@ class WordsPerWeekChartJSONView(BaseLineOptionsChartView):
             'responsive': True,
             'title': {
                 'display': True,
-                'text': 'Words in news per month'
+                'text': 'Volume of news publications'
             },
             'tooltips': {
                 'mode': 'index',
@@ -391,7 +391,7 @@ class WordsPerWeekChartJSONView(BaseLineOptionsChartView):
             'scales': {
                 'yAxes': [{
                     'ticks': {
-                        'suggestedMin': 0,
+                        # 'suggestedMin': 0,
                         # 'suggestedMax': max_line + 1
                     }
                 }]
@@ -470,9 +470,10 @@ class BoxPlotNewsChartJSONView(BaseLineOptionsChartView):
             },
             'title': {
                 'display': True,
-                'text': 'Box Plot Chart'
+                'text': 'Analysis of publication activity'
             },
         }
+
 
 class BoxPlotWordsChartJSONView(BaseLineOptionsChartView):
     years = [2017, 2018, 2019]
@@ -545,6 +546,103 @@ class BoxPlotWordsChartJSONView(BaseLineOptionsChartView):
             },
             'title': {
                 'display': True,
-                'text': 'Box Plot Chart'
+                'text': 'Volume of news publications analysis'
             },
+        }
+
+
+class RadarThemeChartJSONView(BaseLineOptionsChartView):
+    # list_themes = list(KeywordGroup.objects.values_list('group_name', flat=True).order_by('id'))
+    list_themes = list(KeywordGroup.objects.values_list('group_name', flat=True).order_by('id').exclude(group_name__in=['Other', 'Art', 'Research process']))
+    list_universities = list(University.objects.values_list('name', flat=True).order_by('id'))
+
+    def get_providers(self):
+        return self.list_universities
+
+    def get_dataset_options(self, index, color):
+        color_scheme = [
+            'rgba(31,119,180, 0.2)', 'rgba(255,127,14, 0.2)',
+            'rgba(44,160,44, 0.2)', 'rgba(214,39,40, 0.2)',
+            'rgba(148,103,189, 0.2)', 'rgba(140,86,75, 0.2)',
+            'rgba(227,119,194, 0.2)', 'rgba(127,127,127, 0.2)',
+            'rgba(188,189,34, 0.2)', 'rgba(23,190,207, 0.2)'
+        ]
+
+        color_scheme_without_alpha = [
+            'rgb(0,0,139)', 'rgb(255,69,0)',
+            'rgb(0,128,0)', 'rgb(255,0,0)',
+            'rgb(148,0,211)', 'rgb(139,69,19)',
+            'rgb(255,20,147)', 'rgb(112,128,144)',
+            'rgb(205,133,63)', 'rgb(0,128,128)'
+        ]
+
+        options = [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}]
+
+        color_index = 0
+        for item in options:
+            item.update(
+                {
+                    'backgroundColor': color_scheme[color_index],
+                    'borderColor': color_scheme_without_alpha[color_index],
+                    'pointBackgroundColor': color_scheme_without_alpha[color_index],
+                }
+            )
+            color_index += 1
+
+        return options[index]
+
+    def get_labels(self):
+        return self.list_themes
+
+    def get_data(self):
+
+        keywords_data = Keyword.objects.all().exclude(group__group_name__in=['Other', 'Art', 'Research process'])
+
+        # keywords_data = Keyword.objects.all()
+        data = []
+        for university in self.list_universities:
+            university_keywords = keywords_data.filter(university__name=university)
+            university_keywords_list = list(university_keywords)
+            keyword_time = time.time()
+            count_keywords = len(university_keywords_list)
+            themes_dict = {}
+            for theme in self.list_themes:
+                themes_dict[theme] = 0
+                university_keywords_theme = university_keywords.filter(group__group_name=theme)
+                for keyword in university_keywords_theme:
+                    themes_dict[theme] += 1
+
+            print("theme counter: {:.2f}s".format(time.time() - keyword_time))
+            university_array = []
+            start_time = time.time()
+            for item in themes_dict.values():
+                university_array.append(round(item / count_keywords, 2) * 100)
+            # print("Multiplication and division: {:.2f}s".format(time.time() - start_time))
+
+            data.append(university_array)
+
+
+
+        return data
+
+    def get_options(self):
+        return {
+            'legend': {
+                'position': 'right',
+                'labels': {
+                    'boxWidth': 60
+                }
+            },
+            'title': {
+                'display': True,
+                'text': 'University passports'
+            },
+            'scale': {
+                'ticks': {
+                    'beginAtZero': True
+                },
+                'pointLabels': {
+                  'fontSize': 20
+                }
+            }
         }

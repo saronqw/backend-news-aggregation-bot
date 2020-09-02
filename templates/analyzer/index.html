@@ -22,24 +22,73 @@
 <body>
 
 <div class="wrapper">
-
-    <canvas id="tags_chart" width="11" height="5"></canvas>
-    <canvas id="comparison_chart" width="11" height="5"></canvas>
     <canvas id="count_news_chart" width="11" height="5"></canvas>
     <canvas id="boxplot_news_chart" width="11" height="5"></canvas>
     <canvas id="count_words_chart" width="11" height="5"></canvas>
     <canvas id="boxplot_words_chart" width="11" height="5"></canvas>
+    <canvas id="tags_chart" width="11" height="5"></canvas>
+    <canvas id="comparison_chart" width="11" height="5"></canvas>
+    <canvas id="chart-area" width="11" height="5"></canvas>
+    <canvas id="radar_themes" width="11" height="5"></canvas>
+
 </div>
 
 <script type="text/javascript" src="{% static 'jquery-3.5.1.min.js' %}"></script>
 <script type="text/javascript" src="{% static 'Chart.js' %}"></script>
 <script type="text/javascript" src="{% static 'Color.js' %}"></script>
 <script type="text/javascript" src="{% static 'ChartBoxPlot.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'chartjs-chart-matrix.min.js' %}"></script>
 
 <script type="text/javascript">
 
     Chart.defaults.global.defaultFontSize = 24;
     Chart.defaults.global.title.fontSize = 36;
+
+    function randomInteger(min, max) {
+        // случайное число от min до (max+1)
+        let rand = min + Math.random() * (max + 1 - min);
+        return Math.floor(rand);
+    }
+
+    $.get('{% url "newsperweek_chart_json" %}', function (data) {
+        window.setTimeout(function () {
+            new Chart($("#count_news_chart").get(0).getContext("2d"), {
+                type: 'line',
+                data: data.data,
+                options: data.options
+            });
+        }, 400);
+    });
+
+    $.get('{% url "boxplot_news_chart_json" %}', function (data) {
+        window.setTimeout(function () {
+            new Chart($("#boxplot_news_chart").get(0).getContext("2d"), {
+                type: 'boxplot',
+                data: data.data,
+                options: data.options
+            });
+        }, 800);
+    });
+
+    $.get('{% url "wordsperweek_chart_json" %}', function (data) {
+        window.setTimeout(function () {
+            new Chart($("#count_words_chart").get(0).getContext("2d"), {
+                type: 'line',
+                data: data.data,
+                options: data.options
+            });
+        }, 1200);
+    });
+
+    $.get('{% url "boxplot_words_chart_json" %}', function (data) {
+        window.setTimeout(function () {
+            new Chart($("#boxplot_words_chart").get(0).getContext("2d"), {
+                type: 'boxplot',
+                data: data.data,
+                options: data.options
+            });
+        }, 1600);
+    });
 
     $.get('{% url "line_chart_json" %}', function (data) {
         window.setTimeout(function () {
@@ -49,7 +98,7 @@
                 data: const_data.data,
                 options: const_data.options
             });
-        }, 200);
+        }, 2000);
     });
 
 
@@ -60,63 +109,235 @@
                 data: data.data,
                 options: data.options
             });
-        }, 800);
-    });
-
-
-    $.get('{% url "newsperweek_chart_json" %}', function (data) {
-        window.setTimeout(function () {
-            new Chart($("#count_news_chart").get(0).getContext("2d"), {
-                type: 'line',
-                data: data.data,
-                options: data.options
-            });
-        }, 1600);
-    });
-
-
-
-    $.get('{% url "boxplot_news_chart_json" %}', function (data) {
-        window.setTimeout(function () {
-            new Chart($("#boxplot_news_chart").get(0).getContext("2d"), {
-                type: 'boxplot',
-                data: data.data,
-                options: data.options
-            });
         }, 2400);
     });
 
+    window.setTimeout(function () {
+        var ctx = document.getElementById("chart-area").getContext("2d");
+        window.myMatrix = new Chart(ctx, {
+            type: 'matrix',
+            data: {
+                datasets: [{
+                    data: [
+                        {x: 'TPU', y: 'TPU', v: 100},
+                        {x: 'TPU', y: 'TSU', v: 76},
+                        {x: 'TPU', y: 'NSU', v: 61},
+                        {x: 'TPU', y: 'Harvard', v: 58},
+                        {x: 'TPU', y: 'Stanford', v: 75},
+                        {x: 'TPU', y: 'Caltech', v: 67},
+                        {x: 'TPU', y: 'Cambridge', v: 61},
+                        {x: 'TPU', y: 'ITMO', v: 83},
+                        {x: 'TPU', y: 'NUS', v: 53},
+                        {x: 'TPU', y: 'SPSU', v: 70},
 
-    $.get('{% url "wordsperweek_chart_json" %}', function (data) {
+                        {x: 'TSU', y: 'TSU', v: 100},
+                        {x: 'TSU', y: 'TPU', v: 76},
+                        {x: 'TSU', y: 'NSU', v: 55},
+                        {x: 'TSU', y: 'Harvard', v: 69},
+                        {x: 'TSU', y: 'Stanford', v: 80},
+                        {x: 'TSU', y: 'Caltech', v: 67},
+                        {x: 'TSU', y: 'Cambridge', v: 69},
+                        {x: 'TSU', y: 'ITMO', v: 76},
+                        {x: 'TSU', y: 'NUS', v: 57},
+                        {x: 'TSU', y: 'SPSU', v: 74},
+
+                        {x: 'Harvard', y: 'TSU', v: 69},
+                        {x: 'Harvard', y: 'TPU', v: 58},
+                        {x: 'Harvard', y: 'NSU', v: 66},
+                        {x: 'Harvard', y: 'Harvard', v: 100},
+                        {x: 'Harvard', y: 'Stanford', v: 95},
+                        {x: 'Harvard', y: 'Caltech', v: 81},
+                        {x: 'Harvard', y: 'Cambridge', v: 87},
+                        {x: 'Harvard', y: 'ITMO', v: 76},
+                        {x: 'Harvard', y: 'NUS', v: 70},
+                        {x: 'Harvard', y: 'SPSU', v: 78},
+
+                        {x: 'NSU', y: 'TSU', v: 58},
+                        {x: 'NSU', y: 'TPU', v: 61},
+                        {x: 'NSU', y: 'NSU', v: 100},
+                        {x: 'NSU', y: 'Harvard', v: 66},
+                        {x: 'NSU', y: 'Stanford', v: 73},
+                        {x: 'NSU', y: 'Caltech', v: 65},
+                        {x: 'NSU', y: 'Cambridge', v: 65},
+                        {x: 'NSU', y: 'ITMO', v: 66},
+                        {x: 'NSU', y: 'NUS', v: 56},
+                        {x: 'NSU', y: 'SPSU', v: 69},
+
+                        {x: 'Stanford', y: 'TSU', v: 80},
+                        {x: 'Stanford', y: 'TPU', v: 75},
+                        {x: 'Stanford', y: 'NSU', v: 73},
+                        {x: 'Stanford', y: 'Harvard', v: 95},
+                        {x: 'Stanford', y: 'Stanford', v: 100},
+                        {x: 'Stanford', y: 'Caltech', v: 89},
+                        {x: 'Stanford', y: 'Cambridge', v: 93},
+                        {x: 'Stanford', y: 'ITMO', v: 88},
+                        {x: 'Stanford', y: 'NUS', v: 73},
+                        {x: 'Stanford', y: 'SPSU', v: 80},
+
+                        {x: 'Caltech', y: 'TSU', v: 67},
+                        {x: 'Caltech', y: 'TPU', v: 67},
+                        {x: 'Caltech', y: 'NSU', v: 65},
+                        {x: 'Caltech', y: 'Harvard', v: 81},
+                        {x: 'Caltech', y: 'Stanford', v: 86},
+                        {x: 'Caltech', y: 'Caltech', v: 100},
+                        {x: 'Caltech', y: 'Cambridge', v: 79},
+                        {x: 'Caltech', y: 'ITMO', v: 79},
+                        {x: 'Caltech', y: 'NUS', v: 58},
+                        {x: 'Caltech', y: 'SPSU', v: 65},
+
+                        {x: 'Cambridge', y: 'TSU', v: 69},
+                        {x: 'Cambridge', y: 'TPU', v: 61},
+                        {x: 'Cambridge', y: 'NSU', v: 65},
+                        {x: 'Cambridge', y: 'Harvard', v: 87},
+                        {x: 'Cambridge', y: 'Stanford', v: 93},
+                        {x: 'Cambridge', y: 'Caltech', v: 79},
+                        {x: 'Cambridge', y: 'Cambridge', v: 100},
+                        {x: 'Cambridge', y: 'ITMO', v: 77},
+                        {x: 'Cambridge', y: 'NUS', v: 70},
+                        {x: 'Cambridge', y: 'SPSU', v: 76},
+
+                        {x: 'ITMO', y: 'TSU', v: 76},
+                        {x: 'ITMO', y: 'TPU', v: 83},
+                        {x: 'ITMO', y: 'NSU', v: 66},
+                        {x: 'ITMO', y: 'Harvard', v: 76},
+                        {x: 'ITMO', y: 'Stanford', v: 88},
+                        {x: 'ITMO', y: 'Caltech', v: 79},
+                        {x: 'ITMO', y: 'Cambridge', v: 77},
+                        {x: 'ITMO', y: 'ITMO', v: 100},
+                        {x: 'ITMO', y: 'NUS', v: 65},
+                        {x: 'ITMO', y: 'SPSU', v: 77},
+
+                        {x: 'NUS', y: 'TSU', v: 57},
+                        {x: 'NUS', y: 'TPU', v: 53},
+                        {x: 'NUS', y: 'NSU', v: 56},
+                        {x: 'NUS', y: 'Harvard', v: 70},
+                        {x: 'NUS', y: 'Stanford', v: 73},
+                        {x: 'NUS', y: 'Caltech', v: 58},
+                        {x: 'NUS', y: 'Cambridge', v: 70},
+                        {x: 'NUS', y: 'ITMO', v: 65},
+                        {x: 'NUS', y: 'NUS', v: 100},
+                        {x: 'NUS', y: 'SPSU', v: 64},
+
+                        {x: 'SPSU', y: 'TSU', v: 74},
+                        {x: 'SPSU', y: 'TPU', v: 70},
+                        {x: 'SPSU', y: 'NSU', v: 69},
+                        {x: 'SPSU', y: 'Harvard', v: 78},
+                        {x: 'SPSU', y: 'Stanford', v: 80},
+                        {x: 'SPSU', y: 'Caltech', v: 65},
+                        {x: 'SPSU', y: 'Cambridge', v: 76},
+                        {x: 'SPSU', y: 'ITMO', v: 77},
+                        {x: 'SPSU', y: 'NUS', v: 64},
+                        {x: 'SPSU', y: 'SPSU', v: 100},
+                    ],
+                    backgroundColor: function (ctx) {
+                        var value = ctx.dataset.data[ctx.dataIndex].v;
+                        var alpha = (2.2 * value / 100) - 1.1;
+                        return Color('green').alpha(alpha).rgbString();
+                    },
+                    width: function (ctx) {
+                        var a = ctx.chart.chartArea;
+                        return (a.right - a.left) / 11.1;
+                    },
+                    height: function (ctx) {
+                        var a = ctx.chart.chartArea;
+                        return (a.bottom - a.top) / 11.1;
+                    }
+                }]
+            },
+            options: {
+                title: {
+                    display: true,
+                    text: 'Similarity map',
+                    {#lineHeight: 1.8,#}
+                    {#padding: 20#}
+                },
+                legend: {
+                    display: false
+                },
+                tooltips: {
+                    callbacks: {
+                        title: function () {
+                            return '';
+                        },
+                        label: function (item, data) {
+                            var v = data.datasets[item.datasetIndex].data[item.index];
+                            return ["x: " + v.x, "y: " + v.y, "v: " + v.v];
+                        }
+                    }
+                },
+                scales: {
+                    xAxes: [{
+                        ticks: {
+                            display: true,
+                            min: ' ',
+                            max: '',
+                        },
+                        gridLines: {
+                            display: false
+                        },
+                        type: 'category',
+                        labels: [
+                            ' ',
+                            'TPU',
+                            'TSU',
+                            'NSU',
+                            'Harvard',
+                            'Stanford',
+                            'Caltech',
+                            'Cambridge',
+                            'ITMO',
+                            'NUS',
+                            'SPSU',
+                            ' '
+                        ],
+
+                    }],
+                    yAxes: [{
+                        ticks: {
+                            display: true,
+                            min: ' ',
+                            max: '',
+                        },
+                        gridLines: {
+                            display: false
+                        },
+                        type: 'category',
+                        labels: [
+                            ' ',
+                            'TPU',
+                            'TSU',
+                            'NSU',
+                            'Harvard',
+                            'Stanford',
+                            'Caltech',
+                            'Cambridge',
+                            'ITMO',
+                            'NUS',
+                            'SPSU',
+                            ' '
+                        ],
+                    }]
+                }
+            }
+        });
+    }, 2800);
+
+    $.get('{% url "radar_theme_chart_json" %}', function (data) {
         window.setTimeout(function () {
-            new Chart($("#count_words_chart").get(0).getContext("2d"), {
-                type: 'line',
+            var radar_chart = new Chart($("#radar_themes").get(0).getContext("2d"), {
+                type: 'radar',
                 data: data.data,
                 options: data.options
             });
+
+            for (let i = 0; i < 11; i++) {
+                if(i !== 0 && i !== 7) {
+                    radar_chart.getDatasetMeta(i).hidden = true;
+                    radar_chart.update();
+                }
+            }
         }, 3200);
     });
-
-    $.get('{% url "boxplot_news_chart_json" %}', function (data) {
-        window.setTimeout(function () {
-            new Chart($("#boxplot_news_chart").get(0).getContext("2d"), {
-                type: 'boxplot',
-                data: data.data,
-                options: data.options
-            });
-        }, 4000);
-    });
-
-    $.get('{% url "boxplot_words_chart_json" %}', function (data) {
-        window.setTimeout(function () {
-            new Chart($("#boxplot_words_chart").get(0).getContext("2d"), {
-                type: 'boxplot',
-                data: data.data,
-                options: data.options
-            });
-        }, 4800);
-    });
-
 
 </script>
 </body>
