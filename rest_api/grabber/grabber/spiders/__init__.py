@@ -119,7 +119,7 @@ class CambridgeSpider(scrapy.Spider):
         datatime = '2000-01-01 01:01:01'
         datatime_ruw = str(response.css(
             'div.view-content div.views-row div.view-image-credit span::text').get()).strip()  # '05 June 2020'
-        if datatime_ruw != 'None' and datatime_ruw != '' and datatime_ruw != None:
+        if datatime_ruw != 'None' and datatime_ruw != '' and datatime_ruw is not None:
             datatime = str(datetime.datetime.strptime(datatime_ruw, '%d %b %Y'))
         if len(description) < 100 and full_text != '':
             description = description + ' ' + full_text[:100]
@@ -414,9 +414,6 @@ class NusSpider(scrapy.Spider):
                 news = news_items[0:][:l]
                 for i in range(0, l):
                     lastTitles[i] = news[i].title
-        # news_item = NewsItem.objects.filter(university_id=self.universityId).order_by('-pub_date')
-        # if news_item:
-        #     self.lastTitle = (news_item[0]).title
         for quote in response.css('div.col-lg-6.col-md-6.col-sm-6.col-xs-12.highlight-top'):
             title = str(quote.css('h2.highlight-title a::text').get()).strip().replace(';', ' ')
             if title in lastTitles:
@@ -494,33 +491,298 @@ class StanfordSpider(scrapy.Spider):
     lastTitles = ['', '', '', '', '', '']
 
     start_urls = [
-        'http://med.stanford.edu/news/all-news.html?main_news_builder_start=0',
+        'https://news.stanford.edu/all-stories/',
     ]
 
     headers = const_headers
 
     def parse_news_page(self, response, item):
-        # title = str(response.css('div.news-title hgroup.section-header h1::text').get()).strip()
-        description = str(response.css('p.news-excerpt::text').get()).strip()
-        full_text_array = response.css('div.main.parsys div div *::text').getall()
+        full_text_array = response.css('div#story-content p::text').getall() + response.css(
+            'div#story-content p *::text').getall()
         full_text = (' '.join(str(d).strip() for d in full_text_array))
         regex = re.compile(r'[\n\r\t]|  +')
         full_text = (regex.sub("", full_text))
-        date_day = str(response.css('span.publication-day::text').get()).strip()
-        date_year = str(response.css('span.publication-year::text').get()).strip()
-        datatime_ruw = date_day + ' ' + date_year  # Jul 14 2020
-        datatime = '2000-01-01 00:00:00'
-        if not (date_day == date_year == 'None'):
-            datatime = str(datetime.datetime.strptime(datatime_ruw, '%b %d %Y'))
+        if full_text == '' or full_text == 'None' or full_text is None:
+            full_text_array = response.css('div.main.parsys div div *::text').getall()
+            full_text = (' '.join(str(d).strip() for d in full_text_array))
+            regex = re.compile(r'[\n\r\t]|  +')
+            full_text = (regex.sub("", full_text))
+            if full_text == '' or full_text == 'None' or full_text is None:
+                full_text_array = response.css('section.post__content *::text').getall()
+                full_text = (' '.join(str(d).strip() for d in full_text_array))
+                regex = re.compile(r'[\n\r\t]|  +')
+                full_text = (regex.sub("", full_text))
+                if full_text == '' or full_text == 'None' or full_text is None:
+                    full_text_array = response.css('div.fr-element.fr-view  *::text').getall()
+                    full_text = (' '.join(str(d).strip() for d in full_text_array))
+                    regex = re.compile(r'[\n\r\t]|  +')
+                    full_text = (regex.sub("", full_text))
+                    if full_text == '' or full_text == 'None' or full_text is None:
+                        full_text_array = response.css('div.fl-rich-text ul  *::text').getall()
+                        full_text = (' '.join(str(d).strip() for d in full_text_array))
+                        regex = re.compile(r'[\n\r\t]|  +')
+                        full_text = (regex.sub("", full_text))
+                        if full_text == '' or full_text == 'None' or full_text is None:
+                            full_text_array = response.css('div.posts.featured-articles-results  *::text').getall()
+                            full_text = (' '.join(str(d).strip() for d in full_text_array))
+                            regex = re.compile(r'[\n\r\t]|  +')
+                            full_text = (regex.sub("", full_text))
+                            if full_text == '' or full_text == 'None' or full_text is None:
+                                full_text_array = response.css('div.field-item.even  *::text').getall()
+                                full_text = (' '.join(str(d).strip() for d in full_text_array))
+                                regex = re.compile(r'[\n\r\t]|  +')
+                                full_text = (regex.sub("", full_text))
+                                if full_text == '' or full_text == 'None' or full_text is None:
+                                    full_text_array = response.css('div.pane-content  *::text').getall() + response.css(
+                                        'div.pane-content  * *::text').getall()
+                                    full_text = (' '.join(str(d).strip() for d in full_text_array))
+                                    regex = re.compile(r'[\n\r\t]|  +')
+                                    full_text = (regex.sub("", full_text))
+                                    if full_text == '' or full_text == 'None' or full_text is None:
+                                        full_text_array = response.css(
+                                            'div.layout--basic div.paragraph p span span::text').getall() + response.css(
+                                            'div.layout--basic div.paragraph p span span *::text').getall() + response.css(
+                                            'div.layout--basic div.paragraph h2::text').getall() + response.css(
+                                            'div.layout--basic div.paragraph p::text').getall()
+                                        full_text = (' '.join(str(d).strip() for d in full_text_array))
+                                        regex = re.compile(r'[\n\r\t]|  +')
+                                        full_text = (regex.sub("", full_text))
+                                        if full_text == '' or full_text == 'None' or full_text is None:
+                                            full_text_array = response.css('div.article-body  *::text').getall()
+                                            full_text = (' '.join(str(d).strip() for d in full_text_array))
+                                            regex = re.compile(r'[\n\r\t]|  +')
+                                            full_text = (regex.sub("", full_text))
+                                            if full_text == '' or full_text == 'None' or full_text is None:
+                                                full_text_array = response.css(
+                                                    'div.sidearm-story-template-text::text').getall()
+                                                full_text = (' '.join(str(d).strip() for d in full_text_array))
+                                                regex = re.compile(r'[\n\r\t]|  +')
+                                                full_text = (regex.sub("", full_text))
+                                                if full_text == '' or full_text == 'None' or full_text is None:
+                                                    full_text_array = response.css(
+                                                        'div.story-content-wrapper.narrow-container div p::text').getall() + response.css(
+                                                        'div.story-content-wrapper.narrow-container div p *::text').getall()
+                                                    full_text = (' '.join(str(d).strip() for d in full_text_array))
+                                                    regex = re.compile(r'[\n\r\t]|  +')
+                                                    full_text = (regex.sub("", full_text))
+                                                    if full_text == '' or full_text == 'None' or full_text is None:
+                                                        full_text_array = response.css(
+                                                            'div.paragraph-content div.paragraph * span span span::text').getall() + \
+                                                                          response.css(
+                                                                              'div.paragraph-content div.paragraph * span span span span span span::text').getall() + \
+                                                                          response.css(
+                                                                              'div.paragraph-content div.paragraph * span span span span span::text').getall()
+                                                        full_text = (' '.join(str(d).strip() for d in full_text_array))
+                                                        regex = re.compile(r'[\n\r\t]|  +')
+                                                        full_text = (regex.sub("", full_text))
+                                                        if full_text == '' or full_text == 'None' or full_text == None:
+                                                            full_text_array = response.css(
+                                                                'div.article.body p::text').getall() + response.css(
+                                                                'div.article.body p *::text').getall()
+                                                            full_text = (
+                                                                ' '.join(str(d).strip() for d in full_text_array))
+                                                            regex = re.compile(r'[\n\r\t]|  +')
+                                                            full_text = (regex.sub("", full_text))
+                                                            if full_text == '' or full_text == 'None' or full_text is None:
+                                                                full_text_array = response.css(
+                                                                    'div.row div.col-md-12.col-sm-12 p::text').getall()
+                                                                full_text = (
+                                                                    ' '.join(str(d).strip() for d in full_text_array))
+                                                                regex = re.compile(r'[\n\r\t]|  +')
+                                                                full_text = (regex.sub("", full_text))
+                                                                if full_text == '' or full_text == 'None' or full_text is None:
+                                                                    full_text_array = response.css(
+                                                                        'div.text-long p::text').getall()
+                                                                    full_text = (
+                                                                        ' '.join(
+                                                                            str(d).strip() for d in full_text_array))
+                                                                    regex = re.compile(r'[\n\r\t]|  +')
+                                                                    full_text = (regex.sub("", full_text))
+                                                                    if full_text == '' or full_text == 'None' or full_text is None:
+                                                                        full_text_array = response.css(
+                                                                            'div.context-content p::text').getall() + response.css(
+                                                                            'div.context-content p *::text').getall()
+                                                                        full_text = (
+                                                                            ' '.join(
+                                                                                str(d).strip() for d in
+                                                                                full_text_array))
+                                                                        regex = re.compile(r'[\n\r\t]|  +')
+                                                                        full_text = (regex.sub("", full_text))
+                                                                        if full_text == '' or full_text == 'None' or full_text is None:
+                                                                            full_text_array = response.css(
+                                                                                'div.z.ab.ac.ae.af p::text').getall() + response.css(
+                                                                                'div.z.ab.ac.ae.af p *::text').getall() + response.css(
+                                                                                'div.z.ab.ac.ae.af p * *::text').getall()
+                                                                            full_text = (
+                                                                                ' '.join(
+                                                                                    str(d).strip() for d in
+                                                                                    full_text_array))
+                                                                            regex = re.compile(r'[\n\r\t]|  +')
+                                                                            full_text = (regex.sub("", full_text))
+
+        if full_text == '' or full_text == 'None' or full_text is None:
+            full_text_array = response.css(
+                'div.entity.entity-field-collection-item *::text').getall() + response.css(
+                'div.entity.entity-field-collection-item * *::text').getall()
+            full_text = (
+                ' '.join(str(d).strip() for d in full_text_array))
+            regex = re.compile(r'[\n\r\t]|  +')
+            full_text = (regex.sub("", full_text))
+            if full_text == '' or full_text == 'None' or full_text is None:
+                full_text_array = response.css(
+                    'div.entity.entity-field-collection-item *::text').getall() + response.css(
+                    'div.entity.entity-field-collection-item * *::text').getall()
+                full_text = (
+                    ' '.join(str(d).strip() for d in full_text_array))
+                regex = re.compile(r'[\n\r\t]|  +')
+                full_text = (regex.sub("", full_text))
+                if full_text == '' or full_text == 'None' or full_text is None:
+                    full_text_array = response.css(
+                        'div.entry-content *::text').getall()
+                    full_text = (
+                        ' '.join(str(d).strip() for d in full_text_array))
+                    regex = re.compile(r'[\n\r\t]|  +')
+                    full_text = (regex.sub("", full_text))
+                    if full_text == '' or full_text == 'None' or full_text is None:
+                        full_text_array = response.css(
+                            'div.parbase.section div *::text').getall()
+                        full_text = (
+                            ' '.join(str(d).strip() for d in full_text_array))
+                        regex = re.compile(r'[\n\r\t]|  +')
+                        full_text = (regex.sub("", full_text))
+                        if full_text == '' or full_text == 'None' or full_text is None:
+                            full_text_array = response.css(
+                                'div.AWbody *::text').getall()
+                            full_text = (
+                                ' '.join(str(d).strip() for d in full_text_array))
+                            regex = re.compile(r'[\n\r\t]|  +')
+                            full_text = (regex.sub("", full_text))
+                            if full_text == '' or full_text == 'None' or full_text is None:
+                                full_text_array = response.css('div.field-item.even div * *::text').getall()
+                                full_text = (' '.join(str(d).strip() for d in full_text_array))
+                                regex = re.compile(r'[\n\r\t]|  +')
+                                full_text = (regex.sub("", full_text))
+                                if full_text == '' or full_text == 'None' or full_text is None:
+                                    full_text_array = response.css(
+                                        'div.field.field-name-field-body p::text').getall() + response.css(
+                                        'div.field.field-name-field-body p *::text').getall()
+                                    full_text = (' '.join(str(d).strip() for d in full_text_array))
+                                    regex = re.compile(r'[\n\r\t]|  +')
+                                    full_text = (regex.sub("", full_text))
+                                    if full_text == '' or full_text == 'None' or full_text is None:
+                                        full_text_array = response.css(
+                                            'div.field.field-name-body p::text').getall() + response.css(
+                                            'div.field.field-name-body p *::text').getall()
+                                        full_text = (' '.join(str(d).strip() for d in full_text_array))
+                                        regex = re.compile(r'[\n\r\t]|  +')
+                                        full_text = (regex.sub("", full_text))
+                                        if full_text == '' or full_text == 'None' or full_text is None:
+                                            full_text_array = response.css(
+                                                'div.body-element p::text').getall()
+                                            full_text = (' '.join(str(d).strip() for d in full_text_array))
+                                            regex = re.compile(r'[\n\r\t]|  +')
+                                            full_text = (regex.sub("", full_text))
+                                            if full_text == '' or full_text == 'None' or full_text is None:
+                                                full_text_array = response.css(
+                                                    'yt-formatted-string::text').getall()
+                                                full_text = (' '.join(str(d).strip() for d in full_text_array))
+                                                regex = re.compile(r'[\n\r\t]|  +')
+                                                full_text = (regex.sub("", full_text))
+                                                if full_text == '' or full_text == 'None' or full_text is None:
+                                                    full_text_array = response.css(
+                                                        'div.c-stories__body::text').getall() + response.css(
+                                                        'div.c-stories__body *::text').getall() + response.css(
+                                                        'div.c-stories__body * *::text').getall()
+                                                    full_text = (' '.join(str(d).strip() for d in full_text_array))
+                                                    regex = re.compile(r'[\n\r\t]|  +')
+                                                    full_text = (regex.sub("", full_text))
+                                                    if full_text == '' or full_text == 'None' or full_text is None:
+                                                        full_text_array = response.css('p.excerpt::text').getall()
+                                                        full_text = (' '.join(str(d).strip() for d in full_text_array))
+                                                        regex = re.compile(r'[\n\r\t]|  +')
+                                                        full_text = (regex.sub("", full_text))
+                                                        if full_text == '' or full_text == 'None' or full_text is None:
+                                                            full_text_array = response.css('div#story *::text').getall()
+                                                            full_text = (
+                                                                ' '.join(str(d).strip() for d in full_text_array))
+                                                            regex = re.compile(r'[\n\r\t]|  +')
+                                                            full_text = (regex.sub("", full_text))
+                                                            if full_text == '' or full_text == 'None' or full_text is None:
+                                                                full_text_array = response.css(
+                                                                    'div.entry-content *::text').getall() + response.css(
+                                                                    'div.entry-content * *::text').getall()
+                                                                full_text = (
+                                                                    ' '.join(str(d).strip() for d in full_text_array))
+                                                                regex = re.compile(r'[\n\r\t]|  +')
+                                                                full_text = (regex.sub("", full_text))
+                                                                if full_text == '' or full_text == 'None' or full_text is None:
+                                                                    full_text_array = response.css(
+                                                                        'div#article-body dic section.content * *::text').getall()
+                                                                    full_text = (
+                                                                        ' '.join(
+                                                                            str(d).strip() for d in full_text_array))
+                                                                    regex = re.compile(r'[\n\r\t]|  +')
+                                                                    full_text = (regex.sub("", full_text))
+                                                                    if full_text == '' or full_text == 'None' or full_text is None:
+                                                                        full_text_array = response.css(
+                                                                            'div#main-content *::text').getall() + response.css(
+                                                                            'div#main-content * *::text').getall()
+                                                                        full_text = (
+                                                                            ' '.join(
+                                                                                str(d).strip() for d in
+                                                                                full_text_array))
+                                                                        regex = re.compile(r'[\n\r\t]|  +')
+                                                                        full_text = (regex.sub("", full_text))
+        if full_text == '' or full_text == 'None' or full_text is None:
+            full_text_array = response.css(
+                'div#main-content *::text').getall() + response.css(
+                'div#main-content * *::text').getall()
+            full_text = (
+                ' '.join(
+                    str(d).strip() for d in
+                    full_text_array))
+            regex = re.compile(r'[\n\r\t]|  +')
+            full_text = (regex.sub("", full_text))
+            if full_text == '' or full_text == 'None' or full_text is None:
+                full_text_array = response.css('div.margin-50 clearfix  *::text').getall() + response.css(
+                    'div.margin-50 clearfix  * *::text').getall()
+                full_text = (' '.join(str(d).strip() for d in full_text_array))
+                regex = re.compile(r'[\n\r\t]|  +')
+                full_text = (regex.sub("", full_text))
+                if full_text == '' or full_text == 'None' or full_text is None:
+                    full_text_array = response.css('div#story  *::text').getall() + response.css(
+                        'div#story  * *::text').getall()
+                    full_text = (' '.join(str(d).strip() for d in full_text_array))
+                    regex = re.compile(r'[\n\r\t]|  +')
+                    full_text = (regex.sub("", full_text))
+                    if full_text == '' or full_text == 'None' or full_text is None:
+                        full_text_array = response.css(
+                            'div.sidearm-story-template-text  *::text').getall() + response.css(
+                            'div.sidearm-story-template-text::text').getall()
+                        full_text = (' '.join(str(d).strip() for d in full_text_array))
+                        regex = re.compile(r'[\n\r\t]|  +')
+                        full_text = (regex.sub("", full_text))
+
+        if full_text == '' or full_text == 'None' or full_text is None or full_text == ' ':
+            full_text_array = response.css(
+                'div.node.article.body div *::text').getall() + response.css(
+                'div.node.article.body div * *::text').getall()
+            full_text = (' '.join(str(d).strip() for d in full_text_array))
+            regex = re.compile(r'[\n\r\t]|  +')
+            full_text = (regex.sub("", full_text))
+
         newsUrl = response.request.url
-        if len(description) < 100:
-            description = description + ' ' + full_text[0:][:100]
-        if not (description == 'None ' and full_text == '' and datatime == '2000-01-01 00:00:00'):
-            item['title'] = item['title'].replace(';', ' ')
-            item['description'] = description.replace(';', ' ')
+        description = item['description']
+        if len(full_text) < 70:
+            full_text = description
+        if len(description) < 50:
+            description = full_text[:100]
+        if not (full_text == '' or full_text == 'None' or full_text is None or full_text == ' '):
+            item['title'] = item['title']
+            item['description'] = description
             item['full_text'] = full_text.replace(';', ' ')
             item['link'] = newsUrl
-            item['pub_date'] = datatime
+            item['pub_date'] = item['pub_date']
             universityItem = University(id=self.universityId)
             item['university'] = universityItem
             yield item
@@ -536,25 +798,32 @@ class StanfordSpider(scrapy.Spider):
                 news = news_items[0:][:l]
                 for i in range(0, l):
                     self.lastTitles[i] = news[i].title
-        for quote in response.css('li.newsfeed-item.row'):
-            checkdescription = quote.css('p.newsfeed-item-excerpt::text').get()
-            if checkdescription != 'None' and checkdescription != None and checkdescription != '':
-                title = str(quote.css('h3.newsfeed-item-title::text').get()).strip().replace(';', ' ')
-                if title in self.lastTitles:
-                    exit(0)
-                newsUrl = quote.css('div.col-xs-9.col-sm-8 a::attr(href)').get()
-                if newsUrl == 'None' or newsUrl == None:
-                    newsUrl = quote.css('div.col-sm-12 a::attr(href)').get()
-                newsUrl = newsUrl.strip()
-                newsUrl = 'http://med.stanford.edu{}'.format(newsUrl)
-                item = ScrapyNewsItem()
-                item['title'] = title.strip()
+        for quote in response.css('article.card.short.list-item'):
+            title = str(quote.css('div.card-content h3 a::text').get()).strip().replace(';', ' ')
+            if title in self.lastTitles:
+                exit(0)
+
+            datatime_ruw = response.css(
+                'div.container div.row time::attr(datetime)').get()  # '2020-07-15T16:30:00+03:00'
+            datatime = str(datetime.datetime.strptime(datatime_ruw.strip(), '%Y-%m-%dT%H:%M:%S%z'))[0:][:19]
+            description = str(response.css('p.teaser::text').get()).strip()
+            newsUrl = quote.css('div.card-content h3 a::attr(href)').get()
+
+            item = ScrapyNewsItem()
+            item['title'] = title.strip()
+            item['pub_date'] = datatime
+            item['description'] = description.replace(';', ' ')
+            if newsUrl[0] != '/':
                 yield scrapy.Request(newsUrl, headers=self.headers, callback=self.parse_news_page,
                                      cb_kwargs=dict(item=item))
+            else:
+                yield scrapy.Request('https://news.stanford.edu{}'.format(newsUrl), headers=self.headers,
+                                     callback=self.parse_news_page,
+                                     cb_kwargs=dict(item=item))
 
-        next_page = response.css('div.next a::attr(href)').get()
+        next_page = response.css('div.btn.btn-su-alert a::attr(href)').get()
         if next_page is not None:
-            yield response.follow('http://med.stanford.edu{}'.format(next_page), callback=self.parse)
+            yield response.follow(next_page, callback=self.parse)
 
 
 # scrapy crawl tpu_news
